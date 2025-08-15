@@ -34,9 +34,25 @@ Route::prefix('admin')->name('admin.')->group(function () {
         return view('admin.slot');
     })->name('slot');
     
+    Route::get('/slot/add', function () {
+        return view('admin.add-slot');
+    })->name('slot.add');
+    
+    Route::get('/slot/assign-part', function () {
+        return view('admin.assign-part');
+    })->name('slot.assign-part');
+    
+    Route::get('/slot/detail', function () {
+        return view('admin.slot-detail');
+    })->name('slot.detail');
+    
     Route::get('/items', function () {
         return view('admin.items');
     })->name('items');
+    
+    Route::get('/items/add', function () {
+        return view('admin.add-part');
+    })->name('items.add');
     
     Route::get('/history', function () {
         return view('admin.history');
@@ -45,4 +61,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/user', function () {
         return view('admin.user');
     })->name('user');
+    
+    Route::get('/user/add', function () {
+        return view('admin.add-user');
+    })->name('user.add');
 });

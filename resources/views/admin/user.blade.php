@@ -11,27 +11,63 @@
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
-        <div class="bg-white p-6 rounded-lg shadow-sm text-center border">
-            <h3 class="text-gray-600 text-sm uppercase mb-2">Total User</h3>
-            <div class="text-3xl font-bold text-gray-900">70</div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border relative">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-gray-600 text-sm mb-1">Total User</h3>
+                    <div class="text-2xl font-bold text-gray-900">70</div>
+                </div>
+                <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm text-center border">
-            <h3 class="text-gray-600 text-sm uppercase mb-2">Super Admin</h3>
-            <div class="text-3xl font-bold text-gray-900">1</div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border relative">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-gray-600 text-sm mb-1">Super Admin</h3>
+                    <div class="text-2xl font-bold text-gray-900">1</div>
+                </div>
+                <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm text-center border">
-            <h3 class="text-gray-600 text-sm uppercase mb-2">Admin</h3>
-            <div class="text-3xl font-bold text-gray-900">3</div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border relative">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-gray-600 text-sm mb-1">Admin</h3>
+                    <div class="text-2xl font-bold text-gray-900">3</div>
+                </div>
+                <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm text-center border">
-            <h3 class="text-gray-600 text-sm uppercase mb-2">Operator</h3>
-            <div class="text-3xl font-bold text-gray-900">66</div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border relative">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-gray-600 text-sm mb-1">Operator</h3>
+                    <div class="text-2xl font-bold text-gray-900">66</div>
+                </div>
+                <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Action Bar -->
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-5">
-        <a href="#" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
+        <a href="{{ route('admin.user.add') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
             Add User
         </a>
     </div>

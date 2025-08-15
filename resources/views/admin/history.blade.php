@@ -11,13 +11,31 @@
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-        <div class="bg-white p-6 rounded-lg shadow-sm text-center border">
-            <h3 class="text-gray-600 text-sm uppercase mb-2">Stored</h3>
-            <div class="text-3xl font-bold text-gray-900">70</div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border relative">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-gray-600 text-sm mb-1">Stored</h3>
+                    <div class="text-2xl font-bold text-gray-900">70</div>
+                </div>
+                <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm text-center border">
-            <h3 class="text-gray-600 text-sm uppercase mb-2">Pulled</h3>
-            <div class="text-3xl font-bold text-gray-900">30</div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border relative">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-gray-600 text-sm mb-1">Pulled</h3>
+                    <div class="text-2xl font-bold text-gray-900">30</div>
+                </div>
+                <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 

@@ -11,15 +11,24 @@
 
     <!-- Total Items Card -->
     <div class="max-w-sm mb-8">
-        <div class="bg-white p-6 rounded-lg shadow-sm text-center border">
-            <h3 class="text-gray-600 text-sm uppercase mb-2">Total Items</h3>
-            <div class="text-3xl font-bold text-gray-900">70</div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border relative">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-gray-600 text-sm mb-1">Total Items</h3>
+                    <div class="text-2xl font-bold text-gray-900">70</div>
+                </div>
+                <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Action Bar -->
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-5">
-        <a href="#" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
+        <a href="{{ route('admin.items.add') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
             Add Item
         </a>
     </div>
