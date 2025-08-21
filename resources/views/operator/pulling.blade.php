@@ -1,3 +1,8 @@
+@extends('layouts.app-operator')
+
+@section('title', 'Pulling FG')
+
+@section('content')
 <div>
-    <!-- If you do not have a consistent goal in life, you can not live it in a consistent way. - Marcus Aurelius -->
+    <!-- The only way to do great work is to love what you do. - Steve Jobs -->
 </div>

@@ -66,3 +66,21 @@ Route::prefix('admin')->name('admin.')->group(function () {
         return view('admin.add-user');
     })->name('user.add');
 });
+
+// Operator Routes
+Route::prefix('operator')->name('operator.')->group(function () {
+Route::get('/menu', function () {
+    return view('operator.index');
+})->name('menu');
+
+// Route untuk halaman posting F/G
+Route::get('/posting', function () {
+    return view('operator.posting');
+})->name('posting');
+
+// Route untuk halaman pulling F/G
+Route::get('/pulling', function () {
+    return view('operator.pulling');
+})->name('pulling');
+// Tambahkan route operator lain di sini jika diperlukan
+});
