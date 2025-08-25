@@ -322,8 +322,8 @@
                     <div class="relative">
                         <div class="flex items-center space-x-3">
                             <div class="flex flex-col items-end">
-                                <span class="text-sm font-medium text-gray-900">{{ auth()->user()->name ?? 'User' }}</span>
-                                <span class="text-xs text-gray-500">{{ auth()->user()->role ?? 'Admin' }}</span>
+                                <span class="text-sm font-medium text-gray-900">{{ session('user.name') ?? (auth()->user()->name ?? 'User') }}</span>
+                                <span class="text-xs text-gray-500">{{ session('user.role') ? ucfirst(session('user.role')) : (isset(auth()->user()->role) ? ucfirst(auth()->user()->role) : '') }}</span>
                             </div>
                             <button id="userDropdownBtn" class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors cursor-pointer">
                                 <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
@@ -336,8 +336,8 @@
                         <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50 hidden">
                             <div class="py-1">
                                 <div class="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
-                                    <div class="font-medium">{{ auth()->user()->name ?? 'User' }}</div>
-                                    <div class="text-gray-500">{{ auth()->user()->email ?? 'user@example.com' }}</div>
+                                    <div class="font-medium">{{ session('user.name') ?? (auth()->user()->name ?? 'User') }}</div>
+                                    <div class="text-gray-500">{{ session('user.username') ?? (auth()->user()->username ?? '') }}</div>
                                 </div>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
