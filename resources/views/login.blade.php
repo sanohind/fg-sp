@@ -38,7 +38,7 @@
                     <p class="text-sm text-gray-600">Sign in to your account</p>
                 </div>
                 
-                <form method="POST" action="{{ route('login') }}" class="space-y-4">
+                <form method="POST" action="{{ route('login.post') }}" class="space-y-4">
                     @csrf
                     <div>
                         <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username</label>

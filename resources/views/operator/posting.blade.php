@@ -48,11 +48,8 @@
             <button
                 class="bg-blue-900 hover:bg-blue-800 text-white font-semibold py-3 px-16 rounded-md transition duration-200 ease-in-out transform hover:scale-105 shadow-lg">
                 <span class="inline-flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M12 12V9m4.01 3h.01M5 12V9h.01m0 0V9h.01M12 4h.01M12 4V1m0 15.01V19m0 0h4.01M12 19H8m0-9.01V12">
-                        </path>
-                    </svg>
+                    <!-- icon gambar -->
+                    <img src="{{ asset('barcode.png') }}" alt="Scan Rack" class="w-5 h-5 mr-2">
                     Scan Rack
                 </span>
             </button>

@@ -341,11 +341,13 @@
                                     <div class="font-medium">{{ auth()->user()->name ?? 'User' }}</div>
                                     <div class="text-gray-500">{{ auth()->user()->email ?? 'user@example.com' }}</div>
                                 </div>
-                                <a href="{{ route('login') }}"
-                                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                                    <i class="fas fa-sign-out-alt mr-3 text-gray-400"></i>
-                                    Logout
-                                </a>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                        <i class="fas fa-sign-out-alt mr-3 text-gray-400"></i>
+                                        Logout
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>

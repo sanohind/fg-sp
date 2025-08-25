@@ -1,20 +1,16 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// Login Routes
-Route::get('/login', function () {
-    return view('login');
-})->name('login');
-
-Route::post('/login', function () {
-    // Handle login logic here
-    return redirect()->route('admin.home');
-})->name('login.post');
+// Auth Routes
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'authenticate'])->name('login.post');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Admin Routes
 Route::prefix('admin')->name('admin.')->group(function () {
