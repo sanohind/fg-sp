@@ -1,0 +1,124 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Rack;
+use App\Models\RackHistory;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class RackController extends Controller
+{
+    public function index()
+    {
+        $racks = Rack::all();
+        return view('admin.rack', compact('racks'));
+    }
+
+    public function create()
+    {
+        return view('admin.add-rack');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'rack_name' => 'required|string|max:255|unique:rack',
+            'total_slots' => 'required|integer|min:1',
+        ]);
+
+        $rack = Rack::create([
+            'rack_name' => $request->rack_name,
+            'total_slots' => $request->total_slots,
+        ]);
+
+        // Tidak perlu record history untuk create operation
+
+        return redirect()->route('admin.rack.index')->with('success', 'Rack created successfully');
+    }
+
+    public function edit($id)
+    {
+        $rack = Rack::findOrFail($id);
+        return view('admin.edit-rack', compact('rack'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $rack = Rack::findOrFail($id);
+        
+        $request->validate([
+            'rack_name' => 'required|string|max:255|unique:rack,rack_name,' . $id,
+            'total_slots' => 'required|integer|min:1',
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $oldRackName = $rack->rack_name;
+        $oldTotalSlots = $rack->total_slots;
+
+        $rack->update([
+            'rack_name' => $request->rack_name,
+            'total_slots' => $request->total_slots,
+        ]);
+
+        // Record history untuk update operation
+        RackHistory::create([
+            'rack_id' => $rack->id,
+            'action' => 'update',
+            'field_changed' => 'rack_name',
+            'old_value' => $oldRackName,
+            'new_value' => $rack->rack_name,
+            'changed_by' => Auth::id(),
+            'name' => 'Rack Name Updated',
+            'notes' => $request->reason,
+        ]);
+
+        // Record history untuk total_slots jika berubah
+        if ($oldTotalSlots != $rack->total_slots) {
+            RackHistory::create([
+                'rack_id' => $rack->id,
+                'action' => 'update',
+                'field_changed' => 'total_slots',
+                'old_value' => $oldTotalSlots,
+                'new_value' => $rack->total_slots,
+                'changed_by' => Auth::id(),
+                'name' => 'Total Slots Updated',
+                'notes' => $request->reason,
+            ]);
+        }
+
+        return redirect()->route('admin.rack.index')->with('success', 'Rack updated successfully');
+    }
+
+    public function destroy($id)
+    {
+        $rack = Rack::findOrFail($id);
+        
+        // Record history untuk delete operation
+        RackHistory::create([
+            'rack_id' => $rack->id,
+            'action' => 'delete',
+            'field_changed' => 'rack',
+            'old_value' => json_encode([
+                'rack_name' => $rack->rack_name,
+                'total_slots' => $rack->total_slots
+            ]),
+            'new_value' => null,
+            'changed_by' => Auth::id(),
+            'name' => 'Rack Deleted',
+            'notes' => 'Rack deleted',
+        ]);
+
+        $rack->delete();
+
+        return redirect()->route('admin.rack.index')->with('success', 'Rack deleted successfully');
+    }
+
+    public function history($id)
+    {
+        $rack = Rack::findOrFail($id);
+        $histories = RackHistory::where('rack_id', $id)->with('changedBy')->orderBy('created_at', 'desc')->get();
+        
+        return view('admin.rack-history', compact('rack', 'histories'));
+    }
+}

@@ -15,7 +15,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-gray-600 text-sm mb-1">Stored</h3>
-                    <div class="text-2xl font-bold text-gray-900">70</div>
+                    <div class="text-2xl font-bold text-gray-900">{{ $storedCount }}</div>
                 </div>
                 <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -28,7 +28,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-gray-600 text-sm mb-1">Pulled</h3>
-                    <div class="text-2xl font-bold text-gray-900">30</div>
+                    <div class="text-2xl font-bold text-gray-900">{{ $pulledCount }}</div>
                 </div>
                 <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -54,136 +54,41 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($logs as $index => $log)
                 <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">16206-BZ070-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">PL250205508080101</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">A11</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $log->part_no ?? 'N/A' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $log->lot_no ?? 'N/A' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $log->slot_name ?? 'N/A' }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            Stored
-                        </span>
+                        @if($log->action == 'store')
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                Stored
+                            </span>
+                        @elseif($log->action == 'pull')
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                Pulled
+                            </span>
+                        @else
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                {{ ucfirst($log->action) }}
+                            </span>
+                        @endif
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Joko</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:39:56</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $log->user->name ?? 'N/A' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $log->created_at ? $log->created_at->format('d/m/Y H:i:s') : 'N/A' }}</td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">23901-BZ120-00-KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">PL250205508080102</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">C21</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                            Pulled
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Muhaimin</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:38:45</td>
+                @empty
+                <tr>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">No history records found</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">77747-BZ060-00-KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">PL250205508080103</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">G11</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            Stored
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Angga</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:37:30</td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">4</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">32909-BZ100-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">PL250205508080104</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">B15</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            Stored
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Joko</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:36:20</td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">11409-BZ080-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">PL250205508080105</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">D08</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                            Pulled
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Muhaimin</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:35:15</td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">6</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">16206-BZ070-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">PL250205508080106</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">E12</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            Stored
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Angga</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:34:10</td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">7</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">23901-BZ120-00-KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">PL250205508080107</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">F03</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                            Pulled
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Joko</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:33:05</td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">8</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">77747-BZ060-00-KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">PL250205508080108</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">H19</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            Stored
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Muhaimin</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:32:00</td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">9</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">32909-BZ100-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">PL250205508080109</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">I07</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            Stored
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Angga</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:30:55</td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">11409-BZ080-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">PL250205508080110</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">J14</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                            Pulled
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Joko</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:29:50</td>
-                </tr>
+                @endforelse
             </tbody>
             <tfoot>
                 <tr>
@@ -216,7 +121,11 @@ $(document).ready(function() {
                     let input = document.createElement('input');
                     input.placeholder = title;
                     input.className = 'border border-gray-300 rounded-md px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]';
-                    column.footer().replaceChildren(input);
+                    
+                    // Check if footer exists and has content
+                    if (column.footer() && column.footer().textContent !== undefined) {
+                        column.footer().replaceChildren(input);
+                    }
  
                     // Event listener for user input
                     input.addEventListener('keyup', () => {

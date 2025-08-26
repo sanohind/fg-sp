@@ -2,9 +2,21 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\RackController;
+use App\Http\Controllers\SlotController;
+use App\Http\Controllers\ItemController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\HistoryController;
+use App\Http\Controllers\OperatorController;
 
 Route::get('/', function () {
     return redirect()->route('login');
+});
+
+// Test route untuk debugging
+Route::get('/test-session', function () {
+    dd(session()->all());
 });
 
 // Auth Routes
@@ -13,70 +25,74 @@ Route::post('/login', [AuthController::class, 'authenticate'])->name('login.post
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Admin Routes
-Route::prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', function () {
-        return view('admin.index');
-    })->name('home');
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:superadmin,admin'])->group(function () {
+    Route::get('/', [AdminController::class, 'index'])->name('home');
     
-    Route::get('/rack', function () {
-        return view('admin.rack');
-    })->name('rack');
+    // Items Routes (AdminController)
+    Route::get('/items', [AdminController::class, 'items'])->name('items');
+    Route::get('/items/add', [AdminController::class, 'addItem'])->name('items.add');
+    Route::post('/items/store', [AdminController::class, 'storeItem'])->name('items.store');
     
-    Route::get('/rack/add', function () {
-        return view('admin.add-rack');
-    })->name('rack.add');
+    // Slots Routes (AdminController)
+    Route::get('/slot', [AdminController::class, 'slot'])->name('slot');
+    Route::get('/slot/add', [AdminController::class, 'addSlot'])->name('slot.add');
+    Route::post('/slot/store', [AdminController::class, 'storeSlot'])->name('slot.store');
+    Route::get('/slot/{id}/detail', [AdminController::class, 'slotDetail'])->name('slot.detail');
+    Route::get('/slot/{id}/assign-part', [AdminController::class, 'assignPart'])->name('slot.assign-part');
+    Route::post('/slot/{id}/assign-part', [AdminController::class, 'storeAssignPart'])->name('slot.store-assign-part');
+    
+    // Users Routes (AdminController) - hanya untuk superadmin
+    // Route::get('/user', [AdminController::class, 'user'])->name('user');
+    // Route::get('/user/add', [AdminController::class, 'addUser'])->name('user.add');
+    // Route::post('/user/store', [AdminController::class, 'storeUser'])->name('user.store');
+    
+    // History Routes (AdminController)
+    Route::get('/history', [AdminController::class, 'history'])->name('history');
+    
+    // Rack Routes
+    Route::resource('rack', RackController::class);
+    Route::get('/rack/{id}/history', [RackController::class, 'history'])->name('rack.history');
+    
+    // Slot Routes (SlotController - untuk CRUD operations)
+    Route::resource('slots', SlotController::class);
+    Route::get('/slots/{id}/assign-part', [SlotController::class, 'assignPart'])->name('slots.assign-part');
+    Route::post('/slots/{id}/assign-part', [SlotController::class, 'storeAssignPart'])->name('slots.store-assign-part');
+    Route::get('/slots/{id}/change-part', [SlotController::class, 'changePart'])->name('slots.change-part');
+    Route::post('/slots/{id}/change-part', [SlotController::class, 'storeChangePart'])->name('slots.store-change-part');
+    Route::get('/slots/{id}/detail', [SlotController::class, 'detail'])->name('slots.detail');
+    Route::get('/slots/{id}/history', [SlotController::class, 'history'])->name('slots.history');
+    
+    // Item Routes (ItemController - untuk CRUD operations)
+    Route::resource('item', ItemController::class);
+    Route::get('/item/{id}/history', [ItemController::class, 'history'])->name('item.history');
+    
+    // History Routes (HistoryController)
+    Route::get('/history/index', [HistoryController::class, 'index'])->name('history.index');
+    Route::get('/history/{id}', [HistoryController::class, 'show'])->name('history.show');
+    Route::get('/history/export', [HistoryController::class, 'export'])->name('history.export');
+});
 
-    Route::get('/slot', function () {
-        return view('admin.slot');
-    })->name('slot');
-    
-    Route::get('/slot/add', function () {
-        return view('admin.add-slot');
-    })->name('slot.add');
-    
-    Route::get('/slot/assign-part', function () {
-        return view('admin.assign-part');
-    })->name('slot.assign-part');
-    
-    Route::get('/slot/detail', function () {
-        return view('admin.slot-detail');
-    })->name('slot.detail');
-    
-    Route::get('/items', function () {
-        return view('admin.items');
-    })->name('items');
-    
-    Route::get('/items/add', function () {
-        return view('admin.add-part');
-    })->name('items.add');
-    
-    Route::get('/history', function () {
-        return view('admin.history');
-    })->name('history');
-    
-    Route::get('/user', function () {
-        return view('admin.user');
-    })->name('user');
-    
-    Route::get('/user/add', function () {
-        return view('admin.add-user');
-    })->name('user.add');
+// Superadmin only routes
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:superadmin'])->group(function () {
+    Route::resource('user', UserController::class);
 });
 
 // Operator Routes
-Route::prefix('operator')->name('operator.')->group(function () {
-Route::get('/menu', function () {
-    return view('operator.index');
-})->name('menu');
-
-// Route untuk halaman posting F/G
-Route::get('/posting', function () {
-    return view('operator.posting');
-})->name('posting');
-
-// Route untuk halaman pulling F/G
-Route::get('/pulling', function () {
-    return view('operator.pulling');
-})->name('pulling');
-// Tambahkan route operator lain di sini jika diperlukan
+Route::prefix('operator')->name('operator.')->middleware(['auth', 'role:operator'])->group(function () {
+    Route::get('/', [OperatorController::class, 'index'])->name('index');
+    
+    // Posting Routes
+    Route::get('/posting', [OperatorController::class, 'posting'])->name('posting');
+    Route::post('/posting/scan-slot', [OperatorController::class, 'scanSlotForPosting'])->name('posting.scan-slot');
+    Route::post('/posting/scan-box', [OperatorController::class, 'scanBoxForPosting'])->name('posting.scan-box');
+    
+    // Pulling Routes
+    Route::get('/pulling', [OperatorController::class, 'pulling'])->name('pulling');
+    Route::post('/pulling/scan-slot', [OperatorController::class, 'scanSlotForPulling'])->name('pulling.scan-slot');
+    Route::post('/pulling/scan-box', [OperatorController::class, 'scanBoxForPulling'])->name('pulling.scan-box');
+    
+    // Utility Routes
+    Route::get('/search-item', [OperatorController::class, 'searchItem'])->name('search-item');
+    Route::get('/slot/{slotName}/info', [OperatorController::class, 'getSlotInfo'])->name('slot.info');
+    Route::get('/slot/{slotName}/lot-numbers', [OperatorController::class, 'getSlotLotNumbers'])->name('slot.lot-numbers');
 });

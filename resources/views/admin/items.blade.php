@@ -15,7 +15,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-gray-600 text-sm mb-1">Total Items</h3>
-                    <div class="text-2xl font-bold text-gray-900">70</div>
+                    <div class="text-2xl font-bold text-gray-900">{{ $totalItems }}</div>
                 </div>
                 <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -47,179 +47,42 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($items as $index => $item)
                 <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">RL2IN016206BZ0700087</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">16206-BZ070-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">CLAMP, BRAKE TUBE</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ADM</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->erp_code }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $item->part_no }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->description }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->customer }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
+                            <form action="{{ route('admin.item.destroy', $item->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this item?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
+                                    Hapus
+                                </button>
+                            </form>
+                            <a href="{{ route('admin.item.edit', $item->id) }}" class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px] inline-block text-center">
                                 Edit
-                            </button>
+                            </a>
                         </div>
                     </td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">RL3IN032909BZ1000087</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">32909-BZ100-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">FUEL TUBE</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ADM</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
+                @empty
+                <tr>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">No items found</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">RL1IN011409BZ0800087</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">11409-BZ080-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">GUIDE SUB-ASSY</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ADM</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">4</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">RL2IN023901BZ12000KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">23901-BZ120-00-KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">FUEL TANK BREATHER</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ADM</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">RL1IN077747BZ06000KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">77747-BZ060-00-KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BRAKE PIPE</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ADM</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">6</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">RL2IN016206BZ0700087</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">16206-BZ070-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">CLAMP, BRAKE TUBE</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ADM</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">7</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">RL3IN032909BZ1000087</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">32909-BZ100-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">FUEL TUBE</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ADM</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">8</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">RL1IN011409BZ0800087</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">11409-BZ080-00-87</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">GUIDE SUB-ASSY</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ADM</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">9</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">RL2IN023901BZ12000KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">23901-BZ120-00-KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">FUEL TANK BREATHER</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ADM</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">RL1IN077222BZ03000KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">77222-BZ030-00-KZ</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">FUEL TANK BREATHER, NO.2</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">ADM</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+                @endforelse
             </tbody>
             <tfoot>
                 <tr>
+                    <th></th>
                     <th></th>
                     <th></th>
                     <th></th>
@@ -247,7 +110,11 @@ $(document).ready(function() {
                     let input = document.createElement('input');
                     input.placeholder = title;
                     input.className = 'border border-gray-300 rounded-md px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]';
-                    column.footer().replaceChildren(input);
+                    
+                    // Check if footer exists and has content
+                    if (column.footer() && column.footer().textContent !== undefined) {
+                        column.footer().replaceChildren(input);
+                    }
  
                     // Event listener for user input
                     input.addEventListener('keyup', () => {

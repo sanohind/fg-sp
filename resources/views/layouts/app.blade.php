@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @php
+        use Illuminate\Support\Facades\DB;
+    @endphp
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -398,9 +401,9 @@
                     HOME
                 </a>
 
-                <a href="{{ route('admin.rack') }}"
+                <a href="{{ route('admin.rack.index') }}"
                     class="flex items-center px-4 py-2 text-sm font-medium rounded-md
-                          {{ request()->routeIs('admin.rack') ? 'bg-[#0A2856] text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+                                                      {{ request()->routeIs('admin.rack.*') ? 'bg-[#0A2856] text-white' : 'text-gray-700 hover:bg-gray-50' }}">
                     <i class="fas fa-warehouse mr-3"></i>
                     RACK
                 </a>
@@ -426,12 +429,26 @@
                     HISTORY
                 </a>
 
-                <a href="{{ route('admin.user') }}"
+                @php
+                    $userRole = null;
+                    if (auth()->check()) {
+                        $user = auth()->user();
+                        if ($user->role) {
+                            $userRole = strtolower($user->role->role_name);
+                        } else {
+                            $userRole = strtolower(DB::table('roles')->where('id', $user->role_id)->value('role_name'));
+                        }
+                    }
+                @endphp
+                
+                @if($userRole === 'superadmin')
+                <a href="{{ route('admin.user.index') }}"
                     class="flex items-center px-4 py-2 text-sm font-medium rounded-md
-                          {{ request()->routeIs('admin.user') ? 'bg-[#0A2856] text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+                          {{ request()->routeIs('admin.user.*') ? 'bg-[#0A2856] text-white' : 'text-gray-700 hover:bg-gray-50' }}">
                     <i class="fas fa-users mr-3"></i>
                     USER
                 </a>
+                @endif
             </nav>
         </div>
     </div>
@@ -461,41 +478,10 @@
         @include('layouts.footer')
     </div>
 
-    <!-- Global Toast Notifications -->
-    <!-- Success Notification Toast -->
-    <div id="successToast"
-        class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50"
-        style="display: none;">
-        <div class="flex items-center">
-            <i class="fas fa-check-circle mr-3"></i>
-            <div>
-                <h4 class="font-semibold" id="toastTitle">Success!</h4>
-                <p class="text-sm opacity-90" id="toastMessage">Operation completed successfully.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Error Notification Toast -->
-    <div id="errorToast"
-        class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50"
-        style="display: none;">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center">
-                <i class="fas fa-exclamation-triangle mr-3"></i>
-                <div>
-                    <h4 class="font-semibold">Error!</h4>
-                    <p class="text-sm opacity-90" id="errorToastMessage">An error occurred.</p>
-                </div>
-            </div>
-            <button onclick="closeErrorToast()" class="ml-4 text-white hover:text-gray-200 transition-colors duration-200">
-                <i class="fas fa-times text-xs"></i>
-            </button>
-        </div>
-    </div>
-
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="{{ asset('js/toast.js') }}"></script>
     <script>
     // CSRF Token setup for AJAX
     $.ajaxSetup({
@@ -503,6 +489,23 @@
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
     });
+
+    // Session messages for toast notifications
+    @if(session('success'))
+        var sessionSuccess = '{{ session('success') }}';
+    @endif
+    
+    @if(session('error'))
+        var sessionError = '{{ session('error') }}';
+    @endif
+    
+    @if(session('warning'))
+        var sessionWarning = '{{ session('warning') }}';
+    @endif
+    
+    @if(session('info'))
+        var sessionInfo = '{{ session('info') }}';
+    @endif
 
     // Auto-hide alerts after 5 seconds
     setTimeout(function() {
@@ -600,80 +603,10 @@
         });
     });
 
-    // Global Toast Notification Functions
-    function showSuccessToast(title, message) {
-        const toast = document.getElementById('successToast');
-        if (toast) {
-            const titleEl = toast.querySelector('#toastTitle');
-            const messageEl = toast.querySelector('#toastMessage');
-            if (titleEl) titleEl.textContent = title;
-            if (messageEl) messageEl.textContent = message;
-
-            // Show and animate
-            toast.style.display = 'block';
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full');
-                toast.classList.add('translate-x-0');
-            }, 10);
-
-            // Auto hide after 3 seconds
-            setTimeout(() => {
-                hideSuccessToast();
-            }, 3000);
-        }
-    }
-
-    function hideSuccessToast() {
-        const toast = document.getElementById('successToast');
-        if (toast) {
-            toast.classList.remove('translate-x-0');
-            toast.classList.add('translate-x-full');
-
-            // Hide completely after animation
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 300);
-        }
-    }
-
-    function showErrorToast(title, message) {
-        const toast = document.getElementById('errorToast');
-        
-        if (toast) {
-            const messageEl = toast.querySelector('#errorToastMessage');
-            if (messageEl) messageEl.textContent = message;
-
-            // Show and animate
-            toast.style.display = 'block';
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full');
-                toast.classList.add('translate-x-0');
-            }, 10);
-
-            // Auto hide after 6 seconds
-            setTimeout(() => {
-                hideErrorToast();
-            }, 6000);
-        }
-    }
-
-    function hideErrorToast() {
-        const toast = document.getElementById('errorToast');
-        
-        if (toast) {
-            toast.classList.remove('translate-x-0');
-            toast.classList.add('translate-x-full');
-
-            // Hide completely after animation
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 300);
-        }
-    }
-
-    function closeErrorToast() {
-        hideErrorToast();
-    }
+    // Auto-hide alerts after 5 seconds
+    setTimeout(function() {
+        $('.alert').fadeOut('slow');
+    }, 5000);
     </script>
 
     @yield('scripts')

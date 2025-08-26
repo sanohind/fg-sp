@@ -23,7 +23,7 @@
     </div>
 
     <!-- Form -->
-    <form action="#" method="POST">
+    <form action="{{ route('admin.slot.store-assign-part', $slot->id) }}" method="POST">
         @csrf
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Rack -->
@@ -32,7 +32,7 @@
                 <input type="text" 
                        name="rack" 
                        id="rack" 
-                       value="A"
+                       value="{{ $slot->rack->rack_name ?? '' }}"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 focus:outline-none text-sm" 
                        readonly>
             </div>
@@ -43,7 +43,7 @@
                 <input type="text" 
                        name="slot_name" 
                        id="slot_name" 
-                       value="A11"
+                       value="{{ $slot->slot_name ?? '' }}"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 focus:outline-none text-sm" 
                        readonly>
             </div>
@@ -54,7 +54,7 @@
                 <input type="number" 
                        name="capacity" 
                        id="capacity" 
-                       value="4"
+                       value="{{ $slot->capacity ?? '' }}"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 focus:outline-none text-sm" 
                        readonly>
             </div>
@@ -62,12 +62,15 @@
             <!-- Part No -->
             <div>
                 <label for="part_no" class="block text-sm font-medium text-gray-700 mb-1">Part No</label>
-                <select name="part_no" id="part_no" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm appearance-none bg-no-repeat bg-right pr-8" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E');">
+                <select name="part_no" id="part_no" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm appearance-none bg-no-repeat bg-right pr-8 @error('part_no') border-red-500 @enderror" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E');">
                     <option value="">Choose Part</option>
-                    <option value="16206-BZ070-00-87">16206-BZ070-00-87</option>
-                    <option value="16206-BZ070-00-88">16206-BZ070-00-88</option>
-                    <option value="16206-BZ070-00-89">16206-BZ070-00-89</option>
+                    @foreach($items as $item)
+                        <option value="{{ $item->part_no }}" {{ old('part_no') == $item->part_no ? 'selected' : '' }}>{{ $item->part_no }}</option>
+                    @endforeach
                 </select>
+                @error('part_no')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Part Name -->
@@ -101,14 +104,11 @@ document.getElementById('part_no').addEventListener('change', function() {
     const partNo = this.value;
     const partNameField = document.getElementById('part_name');
     
-    // Sample part names - in real app, this would come from database
-    const partNames = {
-        '16206-BZ070-00-87': 'CLAMP, BRAKE TUBE',
-        '16206-BZ070-00-88': 'CLAMP, BRAKE TUBE 2',
-        '16206-BZ070-00-89': 'CLAMP, BRAKE TUBE 3'
-    };
+    // Get part name from items data
+    const items = @json($items);
+    const selectedItem = items.find(item => item.part_no === partNo);
     
-    partNameField.value = partNames[partNo] || '';
+    partNameField.value = selectedItem ? selectedItem.description : '';
 });
 </script>
 @endsection

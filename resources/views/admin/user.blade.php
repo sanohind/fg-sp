@@ -15,7 +15,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-gray-600 text-sm mb-1">Total User</h3>
-                    <div class="text-2xl font-bold text-gray-900">70</div>
+                    <div class="text-2xl font-bold text-gray-900">{{ $totalUsers }}</div>
                 </div>
                 <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -28,7 +28,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-gray-600 text-sm mb-1">Super Admin</h3>
-                    <div class="text-2xl font-bold text-gray-900">1</div>
+                    <div class="text-2xl font-bold text-gray-900">{{ $superAdminCount }}</div>
                 </div>
                 <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -41,7 +41,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-gray-600 text-sm mb-1">Admin</h3>
-                    <div class="text-2xl font-bold text-gray-900">3</div>
+                    <div class="text-2xl font-bold text-gray-900">{{ $adminCount }}</div>
                 </div>
                 <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -54,7 +54,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-gray-600 text-sm mb-1">Operator</h3>
-                    <div class="text-2xl font-bold text-gray-900">66</div>
+                    <div class="text-2xl font-bold text-gray-900">{{ $operatorCount }}</div>
                 </div>
                 <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -67,7 +67,7 @@
 
     <!-- Action Bar -->
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-5">
-        <a href="{{ route('admin.user.add') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
+        <a href="{{ route('admin.user.create') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
             Add User
         </a>
     </div>
@@ -85,169 +85,38 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($users as $index => $user)
                 <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">superduper</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Super admin</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Malika Andini</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $user->username }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $user->role->role_name ?? 'N/A' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $user->name }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
+                            <!-- Delete functionality removed - only superadmin can delete users -->
+                            <span class="bg-gray-400 text-white px-3 py-1 rounded text-xs min-w-[50px] inline-block text-center cursor-not-allowed">
                                 Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
+                            </span>
+                            <!-- Edit functionality removed - only superadmin can edit users -->
+                            <span class="bg-gray-400 text-white px-3 py-1 rounded text-xs min-w-[50px] inline-block text-center cursor-not-allowed">
                                 Edit
-                            </button>
+                            </span>
                         </div>
                     </td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">admin1</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Admin</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jefri Nichol</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
+                @empty
+                <tr>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">No users found</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">muhaimin</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Operator</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Muhaimin Iskandar</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">4</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">joko</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Operator</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Joko Susilo</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">suparman</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Admin</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Suparman</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">6</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">jack</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Operator</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jaki Darmanto</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">7</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">jono</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Operator</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Sujono</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">8</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">heru</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Operator</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Heru Budianto</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">9</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">admin2</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Admin</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Budi Santoso</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">operator1</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Operator</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Siti Nurhaliza</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+                @endforelse
             </tbody>
             <tfoot>
                 <tr>
+                    <th></th>
                     <th></th>
                     <th></th>
                     <th></th>
@@ -274,7 +143,11 @@ $(document).ready(function() {
                     let input = document.createElement('input');
                     input.placeholder = title;
                     input.className = 'border border-gray-300 rounded-md px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]';
-                    column.footer().replaceChildren(input);
+                    
+                    // Check if footer exists and has content
+                    if (column.footer() && column.footer().textContent !== undefined) {
+                        column.footer().replaceChildren(input);
+                    }
  
                     // Event listener for user input
                     input.addEventListener('keyup', () => {

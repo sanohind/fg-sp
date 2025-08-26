@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, string $requiredRole): Response
+    public function handle(Request $request, Closure $next, ...$requiredRoles): Response
     {
-        $requiredRole = strtolower($requiredRole);
+        $requiredRoles = array_map('strtolower', $requiredRoles);
 
         // Prefer Sanctum-authenticated user
         $authUser = $request->user();
@@ -26,18 +26,21 @@ class RoleMiddleware
                 $roleName = strtolower((string) DB::table('roles')->where('id', $authUser->role_id)->value('role_name'));
             }
 
-            if ($roleName === $requiredRole) {
+            if (in_array($roleName, $requiredRoles)) {
                 return $next($request);
             }
 
-            return response()->json(['message' => 'Forbidden'], 403);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
+            return redirect()->route('login')->with('error', 'Tidak memiliki akses.');
         }
 
         // Fallback: session-based user (web)
         $sessionUser = $request->session()->get('user');
         if ($sessionUser) {
             $roleName = strtolower((string) ($sessionUser['role'] ?? ''));
-            if ($roleName === $requiredRole) {
+            if (in_array($roleName, $requiredRoles)) {
                 return $next($request);
             }
             return redirect()->route('login')->with('error', 'Tidak memiliki akses.');

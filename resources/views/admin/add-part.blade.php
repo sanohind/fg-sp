@@ -23,7 +23,7 @@
     </div>
 
     <!-- Form -->
-    <form action="#" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('admin.items.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="space-y-6">
             <!-- Row 1: ERP Code, Part No, Model (3 columns) -->
@@ -34,8 +34,12 @@
                     <input type="text" 
                            name="erp_code" 
                            id="erp_code" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm" 
+                           value="{{ old('erp_code') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm @error('erp_code') border-red-500 @enderror" 
                            placeholder="Enter ERP code">
+                    @error('erp_code')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <!-- Part No -->
@@ -44,8 +48,12 @@
                     <input type="text" 
                            name="part_no" 
                            id="part_no" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm" 
+                           value="{{ old('part_no') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm @error('part_no') border-red-500 @enderror" 
                            placeholder="Enter part number">
+                    @error('part_no')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <!-- Model -->
@@ -54,8 +62,12 @@
                     <input type="text" 
                            name="model" 
                            id="model" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm" 
+                           value="{{ old('model') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm @error('model') border-red-500 @enderror" 
                            placeholder="Enter model">
+                    @error('model')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -67,8 +79,12 @@
                     <input type="text" 
                            name="description" 
                            id="description" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm" 
+                           value="{{ old('description') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm @error('description') border-red-500 @enderror" 
                            placeholder="Enter description">
+                    @error('description')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <!-- Quantity -->
@@ -77,8 +93,12 @@
                     <input type="number" 
                            name="quantity" 
                            id="quantity" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm" 
+                           value="{{ old('quantity') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm @error('quantity') border-red-500 @enderror" 
                            placeholder="Enter quantity">
+                    @error('quantity')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -90,8 +110,12 @@
         <input type="text" 
                name="customer" 
                id="customer" 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px]" 
+               value="{{ old('customer') }}"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px] @error('customer') border-red-500 @enderror" 
                placeholder="Enter customer name">
+        @error('customer')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
     </div>
 
     <!-- Package Image -->
@@ -102,8 +126,11 @@
                    name="package_image" 
                    id="package_image" 
                    accept="image/*"
-                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px] file:mr-4 file:py-0 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#0A2856] file:text-white hover:file:bg-[#0A2856]/90 file:h-6">
+                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px] file:mr-4 file:py-0 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#0A2856] file:text-white hover:file:bg-[#0A2856]/90 file:h-6 @error('package_image') border-red-500 @enderror">
         </div>
+        @error('package_image')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
     </div>
 
     <!-- Part Image -->
@@ -114,8 +141,11 @@
                    name="part_image" 
                    id="part_image" 
                    accept="image/*"
-                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px] file:mr-4 file:py-0 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#0A2856] file:text-white hover:file:bg-[#0A2856]/90 file:h-6">
+                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px] file:mr-4 file:py-0 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#0A2856] file:text-white hover:file:bg-[#0A2856]/90 file:h-6 @error('part_image') border-red-500 @enderror">
         </div>
+        @error('part_image')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
     </div>
 </div>
         </div>

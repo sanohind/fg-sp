@@ -19,6 +19,9 @@ class AuthController extends Controller
         $validated = $request->validate([
             'username' => ['required', 'string'],
             'password' => ['required', 'string'],
+        ], [
+            'username.required' => 'Username harus diisi.',
+            'password.required' => 'Password harus diisi.',
         ]);
 
         // Fetch user with role name
@@ -38,7 +41,8 @@ class AuthController extends Controller
         if (!$user || !$passwordOk) {
             return back()
                 ->withInput($request->only('username'))
-                ->with('error', 'Username atau password salah.');
+                ->withErrors(['username' => 'Username atau password salah.'])
+                ->with('error', 'Username atau password salah. Silakan coba lagi.');
         }
 
         // Minimal session-based login (avoids guard setup)
@@ -52,21 +56,22 @@ class AuthController extends Controller
 
         $role = strtolower((string)($user->role ?? ''));
         if ($role === 'admin') {
-            return redirect()->route('admin.home');
+            return redirect()->route('admin.home')->with('success', 'Selamat datang, ' . ($user->name ?? 'Admin') . '!');
         }
         if ($role === 'operator') {
-            return redirect()->route('operator.menu');
+            return redirect()->route('operator.index')->with('success', 'Selamat datang, ' . ($user->name ?? 'Operator') . '!');
         }
 
         // Default fallback
-        return redirect()->route('admin.home');
+        return redirect()->route('admin.home')->with('success', 'Selamat datang, ' . ($user->name ?? 'User') . '!');
     }
 
     public function logout(Request $request)
     {
+        $userName = session('user.name') ?? 'User';
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect()->route('login');
+        return redirect()->route('login')->with('success', 'Anda telah berhasil logout. Sampai jumpa, ' . $userName . '!');
     }
 }
 

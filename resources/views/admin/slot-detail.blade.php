@@ -31,7 +31,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Rack</label>
                     <input type="text" 
-                           value="A"
+                           value="{{ $slot->rack->rack_name ?? 'N/A' }}"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 text-sm" 
                            readonly>
                 </div>
@@ -40,7 +40,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Slot Name</label>
                     <input type="text" 
-                           value="A11"
+                           value="{{ $slot->slot_name ?? 'N/A' }}"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 text-sm" 
                            readonly>
                 </div>
@@ -49,7 +49,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
                     <input type="number" 
-                           value="4"
+                           value="{{ $slot->capacity ?? 'N/A' }}"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 text-sm" 
                            readonly>
                 </div>
@@ -58,7 +58,7 @@
 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Part No</label>
                     <input type="text" 
-                           value="16206-BZ070-00-87"
+                           value="{{ $slot->item->part_no ?? 'N/A' }}"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 text-sm" 
                            readonly>
                 </div>
@@ -67,7 +67,7 @@
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Part Name</label>
                     <input type="text" 
-                           value="CLAMP, BRAKE TUBE"
+                           value="{{ $slot->item->description ?? 'N/A' }}"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 text-sm" 
                            readonly>
                 </div>
@@ -94,54 +94,39 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($slot->logStorePulls as $index => $log)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PL2502055080801015</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $log->lot_no ?? 'N/A' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                    Stored
-                                </span>
+                                @if($log->action == 'store')
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                        Stored
+                                    </span>
+                                @elseif($log->action == 'pull')
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                        Pulled
+                                    </span>
+                                @else
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        {{ ucfirst($log->action) }}
+                                    </span>
+                                @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:39:56</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Muhaimin</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $log->qty ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $log->created_at ? $log->created_at->format('d/m/Y H:i:s') : 'N/A' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $log->user->name ?? 'N/A' }}</td>
                         </tr>
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PL2502055080801016</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                    Stored
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:39:59</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Muhaimin</td>
+                        @empty
+                        <tr>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">No items found in this slot</td>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                         </tr>
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PL2502055080801017</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                    Stored
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:40:01</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Muhaimin</td>
-                        </tr>
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">4</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PL2502055080801018</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                    Stored
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">23/07/2025 15:40:02</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Muhaimin</td>
-                        </tr>
+                        @endforelse
                     </tbody>
                     <tfoot>
                         <tr>
@@ -175,7 +160,11 @@ $(document).ready(function() {
                     let input = document.createElement('input');
                     input.placeholder = title;
                     input.className = 'border border-gray-300 rounded-md px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]';
-                    column.footer().replaceChildren(input);
+                    
+                    // Check if footer exists and has content
+                    if (column.footer() && column.footer().textContent !== undefined) {
+                        column.footer().replaceChildren(input);
+                    }
  
                     // Event listener for user input
                     input.addEventListener('keyup', () => {

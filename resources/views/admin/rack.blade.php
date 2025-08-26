@@ -15,247 +15,135 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-gray-600 text-sm mb-1">Total Rack</h3>
-                    <div class="text-2xl font-bold text-gray-900">10</div>
+                    <div class="text-2xl font-bold text-gray-900">{{ $racks->count() }}</div>
                 </div>
-                <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
+                <a href="{{ route('admin.rack.index') }}" class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center hover:bg-[#0A2856]/90">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
                     </svg>
-                </button>
+                </a>
             </div>
         </div>
         <div class="bg-white p-4 rounded-lg shadow-sm border relative">
             <div class="flex justify-between items-start">
                 <div>
-                    <h3 class="text-gray-600 text-sm mb-1">Filled</h3>
-                    <div class="text-2xl font-bold text-gray-900">9</div>
+                    <h3 class="text-gray-600 text-sm mb-1">Total Slots</h3>
+                    <div class="text-2xl font-bold text-gray-900">{{ $racks->sum('slots_count') }}</div>
                 </div>
-                <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
+                <a href="{{ route('admin.slot') }}" class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center hover:bg-[#0A2856]/90">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
-                </button>
+                </a>
             </div>
         </div>
         <div class="bg-white p-4 rounded-lg shadow-sm border relative">
             <div class="flex justify-between items-start">
                 <div>
-                    <h3 class="text-gray-600 text-sm mb-1">Empty</h3>
-                    <div class="text-2xl font-bold text-gray-900">1</div>
+                    <h3 class="text-gray-600 text-sm mb-1">Assigned Slots</h3>
+                    <div class="text-2xl font-bold text-gray-900">{{ $racks->sum('assigned_slots_count') }}</div>
                 </div>
-                <button class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center">
+                <a href="{{ route('admin.slot') }}" class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center hover:bg-[#0A2856]/90">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
                     </svg>
-                </button>
+                </a>
             </div>
         </div>
     </div>
 
     <!-- Action Bar -->
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-5">
-        <a href="{{ route('admin.rack.add') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
+        <a href="{{ route('admin.rack.create') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
             Add Rack
         </a>
     </div>
 
-    <!-- Table -->
-    <div class="overflow-x-auto">
-        <table id="rackTable" class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-[#0A2856]">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">No.</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Rack</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Total Slots</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Available Slots</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Occupied Slots</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Action</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">A</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">120</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">0</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">120</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">B</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">150</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">120</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">0</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">C</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">120</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">117</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">4</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">D</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">150</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">4</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">146</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">E</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">120</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">0</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">120</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">6</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">F</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">100</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">30</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">70</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">7</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">G</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">100</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">6</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">94</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">8</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">H</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">140</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">9</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">131</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+<!-- Table -->
+<div class="overflow-x-auto">
+    <table id="rackTable" class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-[#0A2856]">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">No.</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Rack</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Total Slots</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Available Slots</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Occupied Slots</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Action</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            @forelse($racks as $index => $rack)
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $rack->rack_name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->slots_count }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->slots_count - $rack->assigned_slots_count }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->assigned_slots_count }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
+                        <a href="{{ route('admin.rack.history', $rack->id) }}" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 min-w-[50px] text-center">
+                            History
+                        </a>
+                        <a href="{{ route('admin.rack.edit', $rack->id) }}" class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px] text-center">
+                            Edit
+                        </a>
+                        <form action="{{ route('admin.rack.destroy', $rack->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this rack?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
+                                Delete
                             </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">9</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">I</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">150</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">40</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">110</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">J</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">100</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">100</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">0</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Hapus
-                            </button>
-                            <button class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px]">
-                                Edit
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            @empty
+            <tr>
+                <td class="px-6 py-4 text-center text-sm text-gray-500">No racks available</td>
+                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+            </tr>
+            @endforelse
+        </tbody>
+        <tfoot>
+            <tr>
+                <th class="px-6 py-3"></th>
+                <th class="px-6 py-3"></th>
+                <th class="px-6 py-3"></th>
+                <th class="px-6 py-3"></th>
+                <th class="px-6 py-3"></th>
+                <th class="px-6 py-3"></th>
+            </tr>
+        </tfoot>
+    </table>
 </div>
+</div>
+
+@if(session('success'))
+<div id="success-alert" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-md shadow-lg z-50">
+    {{ session('success') }}
+</div>
+<script>
+    setTimeout(function() {
+        document.getElementById('success-alert').style.display = 'none';
+    }, 3000);
+</script>
+@endif
+
+@if(session('error'))
+<div id="error-alert" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-md shadow-lg z-50">
+    {{ session('error') }}
+</div>
+<script>
+    setTimeout(function() {
+        document.getElementById('error-alert').style.display = 'none';
+    }, 3000);
+</script>
+@endif
 @endsection
 
 @section('scripts')
@@ -273,7 +161,11 @@ $(document).ready(function() {
                     let input = document.createElement('input');
                     input.placeholder = title;
                     input.className = 'border border-gray-300 rounded-md px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]';
-                    column.footer().replaceChildren(input);
+                    
+                    // Check if footer exists and has content
+                    if (column.footer() && column.footer().textContent !== undefined) {
+                        column.footer().replaceChildren(input);
+                    }
  
                     // Event listener for user input
                     input.addEventListener('keyup', () => {
