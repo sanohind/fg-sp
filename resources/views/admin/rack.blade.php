@@ -28,7 +28,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-gray-600 text-sm mb-1">Total Slots</h3>
-                    <div class="text-2xl font-bold text-gray-900">{{ $racks->sum('slots_count') }}</div>
+                    <div class="text-2xl font-bold text-gray-900">{{ $racks->sum('total_slots') }}</div>
                 </div>
                 <a href="{{ route('admin.slot') }}" class="w-6 h-6 bg-[#0A2856] rounded-md flex items-center justify-center hover:bg-[#0A2856]/90">
                     <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -77,8 +77,8 @@
             <tr class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $rack->rack_name }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->slots_count }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->slots_count - $rack->assigned_slots_count }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->total_slots }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->total_slots - $rack->assigned_slots_count }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->assigned_slots_count }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex space-x-2">

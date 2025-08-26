@@ -220,81 +220,6 @@ class AdminController extends Controller
         }
     }
 
-    // Users Management
-    public function user()
-    {
-        $users = User::with('role')->get();
-        
-        // Calculate statistics
-        $stats = [
-            'totalUsers' => $users->count(),
-            'superAdminCount' => 0,
-            'adminCount' => 0,
-            'operatorCount' => 0
-        ];
-        
-        // Count users by role
-        foreach ($users as $user) {
-            if ($user->role) {
-                switch(strtolower($user->role->role_name)) {
-                    case 'superadmin':
-                        $stats['superAdminCount']++;
-                        break;
-                    case 'admin':
-                        $stats['adminCount']++;
-                        break;
-                    case 'operator':
-                        $stats['operatorCount']++;
-                        break;
-                }
-            }
-        }
-        
-        return view('admin.user', array_merge(['users' => $users], $stats));
-    }
-
-    public function addUser()
-    {
-        $roles = Role::all();
-        return view('admin.add-user', compact('roles'));
-    }
-
-    public function storeUser(Request $request)
-    {
-        $request->validate([
-            'role' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users',
-            'password' => 'required|string|min:6',
-            'name' => 'required|string|max:255',
-        ], [
-            'role.required' => 'Role harus dipilih.',
-            'username.required' => 'Username harus diisi.',
-            'username.unique' => 'Username sudah ada dalam sistem.',
-            'password.required' => 'Password harus diisi.',
-            'password.min' => 'Password minimal 6 karakter.',
-            'name.required' => 'Name harus diisi.',
-        ]);
-
-        try {
-            // Find role by name
-            $role = Role::where('role_name', $request->role)->first();
-            if (!$role) {
-                return back()->withInput()->withErrors(['role' => 'Role tidak ditemukan.'])->with('error', 'Role tidak ditemukan.');
-            }
-
-            User::create([
-                'username' => $request->username,
-                'password' => bcrypt($request->password),
-                'name' => $request->name,
-                'role_id' => $role->id,
-            ]);
-
-            return redirect()->route('admin.user')->with('success', 'User berhasil ditambahkan!');
-        } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Gagal menambahkan user. Silakan coba lagi.');
-        }
-    }
-
     // History Management
     public function history()
     {
@@ -332,16 +257,5 @@ class AdminController extends Controller
             ->paginate(20);
             
         return view('admin.history', compact('logs'));
-    }
-
-    public function userIndex()
-    {
-        // Only superadmin can access user management
-        if (!auth()->user()->role->name === 'superadmin') {
-            abort(403, 'Unauthorized access');
-        }
-
-        $users = User::with('role')->get();
-        return view('admin.user', compact('users'));
     }
 }

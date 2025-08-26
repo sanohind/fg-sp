@@ -431,7 +431,12 @@
 
                 @php
                     $userRole = null;
-                    if (auth()->check()) {
+                    // Check session first (for session-based auth)
+                    if (session('user.role')) {
+                        $userRole = strtolower(session('user.role'));
+                    }
+                    // Fallback to auth() if session doesn't have role
+                    elseif (auth()->check()) {
                         $user = auth()->user();
                         if ($user->role) {
                             $userRole = strtolower($user->role->role_name);

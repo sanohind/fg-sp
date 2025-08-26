@@ -19,12 +19,44 @@ Route::get('/test-session', function () {
     dd(session()->all());
 });
 
+// Debug route untuk testing role dan user data
+Route::get('/debug-user', function () {
+    if (session('user')) {
+        echo "Session User: ";
+        dd(session('user'));
+    } elseif (auth()->check()) {
+        echo "Auth User: ";
+        $user = auth()->user();
+        dd([
+            'user' => $user->toArray(),
+            'role' => $user->role ? $user->role->toArray() : null,
+            'role_id' => $user->role_id
+        ]);
+    } else {
+        echo "No user found";
+        dd(session()->all());
+    }
+});
+
+// Debug route untuk testing rack dan slots data
+Route::get('/debug-rack', function () {
+    $racks = \App\Models\Rack::withCount([
+        'slots as slots_count',
+        'slots as assigned_slots_count' => function($query) {
+            $query->whereNotNull('item_id');
+        }
+    ])->get();
+    
+    echo "Rack Data: ";
+    dd($racks->toArray());
+});
+
 // Auth Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'authenticate'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Admin Routes
+// Admin Routes (superadmin, admin)
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:superadmin,admin'])->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('home');
     
@@ -40,11 +72,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:superadmin,adm
     Route::get('/slot/{id}/detail', [AdminController::class, 'slotDetail'])->name('slot.detail');
     Route::get('/slot/{id}/assign-part', [AdminController::class, 'assignPart'])->name('slot.assign-part');
     Route::post('/slot/{id}/assign-part', [AdminController::class, 'storeAssignPart'])->name('slot.store-assign-part');
-    
-    // Users Routes (AdminController) - hanya untuk superadmin
-    // Route::get('/user', [AdminController::class, 'user'])->name('user');
-    // Route::get('/user/add', [AdminController::class, 'addUser'])->name('user.add');
-    // Route::post('/user/store', [AdminController::class, 'storeUser'])->name('user.store');
     
     // History Routes (AdminController)
     Route::get('/history', [AdminController::class, 'history'])->name('history');
@@ -72,7 +99,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:superadmin,adm
     Route::get('/history/export', [HistoryController::class, 'export'])->name('history.export');
 });
 
-// Superadmin only routes
+// Superadmin only routes - User Management
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:superadmin'])->group(function () {
     Route::resource('user', UserController::class);
 });

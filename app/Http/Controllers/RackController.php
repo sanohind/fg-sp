@@ -11,7 +11,13 @@ class RackController extends Controller
 {
     public function index()
     {
-        $racks = Rack::all();
+        $racks = Rack::withCount([
+            'slots as slots_count',
+            'slots as assigned_slots_count' => function($query) {
+                $query->whereNotNull('item_id');
+            }
+        ])->get();
+        
         return view('admin.rack', compact('racks'));
     }
 

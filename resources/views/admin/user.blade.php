@@ -93,14 +93,19 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $user->name }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div class="flex space-x-2">
-                            <!-- Delete functionality removed - only superadmin can delete users -->
-                            <span class="bg-gray-400 text-white px-3 py-1 rounded text-xs min-w-[50px] inline-block text-center cursor-not-allowed">
-                                Hapus
-                            </span>
-                            <!-- Edit functionality removed - only superadmin can edit users -->
-                            <span class="bg-gray-400 text-white px-3 py-1 rounded text-xs min-w-[50px] inline-block text-center cursor-not-allowed">
+                            <a href="{{ route('admin.user.show', $user->id) }}" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 min-w-[50px] text-center">
+                                View
+                            </a>
+                            <a href="{{ route('admin.user.edit', $user->id) }}" class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px] text-center">
                                 Edit
-                            </span>
+                            </a>
+                            <form action="{{ route('admin.user.destroy', $user->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this user?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
+                                    Delete
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>
