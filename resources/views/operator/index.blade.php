@@ -10,7 +10,7 @@
             <!-- Juudl halaman -->
             <h1 class="text-2xl font-bold text-gray-900">Menu Operator</h1>
             <!-- Card: Posting F/G -->
-            <a href="posting"
+            <a href="{{ route('operator.posting') }}"
                 class="block bg-white rounded-lg shadow border p-4 sm:px-8 sm:py-8 hover:shadow-md transition group">
                 <div class="flex flex-row items-center justify-between">
                     <div class="text-lg sm:text-xl font-semibold text-[#0A2856]">Store F/G</div>

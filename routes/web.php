@@ -110,6 +110,8 @@ Route::prefix('operator')->name('operator.')->middleware(['auth', 'role:operator
     
     // Posting Routes
     Route::get('/posting', [OperatorController::class, 'posting'])->name('posting');
+    Route::post('/posting/scan-slotname', [OperatorController::class, 'scanSlotnameForPosting'])->name('posting.scan-slotname');
+    Route::post('/posting/store-by-erp', [OperatorController::class, 'storeByErp'])->name('posting.store-by-erp');
     Route::post('/posting/scan-slot', [OperatorController::class, 'scanSlotForPosting'])->name('posting.scan-slot');
     Route::post('/posting/scan-box', [OperatorController::class, 'scanBoxForPosting'])->name('posting.scan-box');
     

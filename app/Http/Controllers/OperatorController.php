@@ -37,6 +37,106 @@ class OperatorController extends Controller
         return view('operator.posting');
     }
 
+    // New: Scan slot by slot_name to determine target slot and item
+    public function scanSlotnameForPosting(Request $request)
+    {
+        $request->validate([
+            'slot_name' => 'required|string|exists:slots,slot_name'
+        ]);
+
+        $slot = Slot::with(['rack', 'item'])
+            ->where('slot_name', $request->slot_name)
+            ->first();
+
+        if (!$slot) {
+            return response()->json(['error' => 'Slot tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'slot' => $slot,
+            'rack' => $slot->rack,
+            'item' => $slot->item,
+            // return absolute URLs to images for easy rendering on frontend
+            'package_image' => $slot->item ? ($slot->item->packaging_image_url ?? null) : null,
+            'packaging_image_url' => $slot->item ? ($slot->item->packaging_image_url ?? null) : null,
+            // Use slot's current_qty for availability tracking
+            'current_qty' => $slot->current_qty,
+            'capacity' => $slot->capacity,
+        ]);
+    }
+
+    // New: Store by ERP after slot scanned (increment count)
+    public function storeByErp(Request $request)
+    {
+        $request->validate([
+            'slot_name' => 'required|string|exists:slots,slot_name',
+            'erp_code' => 'required|string',
+            'lot_no' => 'nullable|string'
+        ]);
+
+        // Resolve slot by name
+        $slot = Slot::with(['rack', 'item'])
+            ->where('slot_name', $request->slot_name)
+            ->first();
+
+        if (!$slot) {
+            return response()->json([
+                'error' => 'Slot tidak ditemukan'
+            ], 400);
+        }
+
+        $item = $slot->item;
+
+        if (!$item || $item->erp_code !== $request->erp_code) {
+            return response()->json([
+                'error' => 'ERP code tidak sesuai dengan item pada slot ini'
+            ], 400);
+        }
+
+        // Capacity check
+        if ($slot->current_qty >= $slot->capacity) {
+            return response()->json([
+                'error' => 'Slot sudah penuh',
+                'current_qty' => $slot->current_qty,
+                'capacity' => $slot->capacity
+            ], 400);
+        }
+
+        // Increment slot current quantity (not global item qty)
+        $slot->update(['current_qty' => $slot->current_qty + 1]);
+
+        // Log with generated lot number if not provided
+        $lotNo = $request->lot_no ?: ('LOT-' . now()->format('YmdHis'));
+
+        LogStorePull::create([
+            'erp_code' => $item->erp_code,
+            'part_no' => $item->part_no,
+            'slot_id' => $slot->id,
+            'slot_name' => $slot->slot_name,
+            'rack_name' => $slot->rack->rack_name,
+            'lot_no' => $lotNo,
+            'action' => 'store',
+            'user_id' => Auth::id(),
+            'name' => Auth::user()->name,
+            'qty' => 1
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil menambahkan 1 box (ERP: ' . $item->erp_code . ')',
+            'current_qty' => $slot->current_qty,
+            'capacity' => $slot->capacity,
+            'slot_name' => $slot->slot_name,
+            'rack_name' => $slot->rack->rack_name,
+            'part_no' => $item->part_no,
+            'lot_no' => $lotNo,
+            // expose part image for UI swap after ERP scan
+            'part_image_url' => $item->part_image_url ?? null,
+            // also return packaging in case UI needs to revert
+            'packaging_image_url' => $item->packaging_image_url ?? null
+        ]);
+    }
+
     // Scan slot QR code untuk posting
     public function scanSlotForPosting(Request $request)
     {

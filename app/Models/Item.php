@@ -52,11 +52,45 @@ class Item extends Model
     // Accessor untuk gambar
     public function getPartImageUrlAttribute()
     {
-        return $this->part_img ? asset('storage/parts/' . $this->part_img) : null;
+        if (!$this->part_img) {
+            return null;
+        }
+        $path = $this->part_img;
+        // If already absolute URL
+        if (preg_match('/^https?:\/\//i', $path)) {
+            return $path;
+        }
+        // If already points under storage
+        if (str_starts_with($path, 'storage/') || str_starts_with($path, '/storage/')) {
+            return asset(ltrim($path, '/'));
+        }
+        // If includes nested folders, prefix with storage/
+        if (str_contains($path, '/')) {
+            return asset('storage/' . ltrim($path, '/'));
+        }
+        // Fallback assume filename only under parts/
+        return asset('storage/parts/' . $path);
     }
 
     public function getPackagingImageUrlAttribute()
     {
-        return $this->packaging_img ? asset('storage/packaging/' . $this->packaging_img) : null;
+        if (!$this->packaging_img) {
+            return null;
+        }
+        $path = $this->packaging_img;
+        // If already absolute URL
+        if (preg_match('/^https?:\/\//i', $path)) {
+            return $path;
+        }
+        // If already points under storage
+        if (str_starts_with($path, 'storage/') || str_starts_with($path, '/storage/')) {
+            return asset(ltrim($path, '/'));
+        }
+        // If includes nested folders, prefix with storage/
+        if (str_contains($path, '/')) {
+            return asset('storage/' . ltrim($path, '/'));
+        }
+        // Fallback assume filename only under packaging/
+        return asset('storage/packaging/' . $path);
     }
 }

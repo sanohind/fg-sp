@@ -37,6 +37,20 @@
                     <h1 class="text-lg sm:text-xl font-semibold text-gray-800 mb-1">Welcome Back</h1>
                     <p class="text-xs sm:text-sm text-gray-600">Sign in to your account</p>
                 </div>
+
+                <!-- Error Messages -->
+                @if($errors->any())
+                <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <div>
+                            @foreach($errors->all() as $error)
+                                <div>{{ $error }}</div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                @endif
                 
                 <form method="POST" action="{{ route('login.post') }}" class="space-y-3 sm:space-y-4">
                     @csrf
