@@ -193,179 +193,124 @@ class OperatorController extends Controller
             }
 
             $request->validate([
-                'slot_name' => 'required|string|exists:slots,slot_name',
-                'erp_code' => 'required|string|min:60|max:63',
-                'lot_no' => 'nullable|string'
-            ]);
-            
-            // Validate ERP code format and extract lot_no
-            $erpCode = $request->erp_code;
-            if (strlen($erpCode) < 60 || strlen($erpCode) > 63) {
-                return response()->json([
-                    'error' => 'ERP code harus memiliki panjang 60-63 karakter'
-                ], 400);
-            }
-            
-            // Parse ERP code structure
-            $erpParts = explode(';', $erpCode);
-            if (count($erpParts) !== 8) {
-                return response()->json([
-                    'error' => 'Format ERP code tidak valid. Harus memiliki 8 kolom yang dipisahkan dengan semicolon (;)'
-                ], 400);
-            }
-            
-            // Extract ERP code components
-            $erpPartNo = trim($erpParts[0]);
-            $quantity = trim($erpParts[1]);
-            $lotNo = trim($erpParts[2]);
-            $customerName = trim($erpParts[3]);
-            $poLine = trim($erpParts[4]);
-            $sequence = trim($erpParts[5]);
-            $dnNo = trim($erpParts[6]);
-            $seqDn = trim($erpParts[7]);
-            
-            // Validate lot_no is not empty
-            if (empty($lotNo)) {
-                return response()->json([
-                    'error' => 'Lot number tidak boleh kosong dalam ERP code'
-                ], 400);
-            }
-            
-            \Log::info('ERP code parsed successfully', [
-                'erp_part_no' => $erpPartNo,
-                'quantity' => $quantity,
-                'lot_no' => $lotNo,
-                'customer_name' => $customerName,
-                'po_line' => $poLine,
-                'sequence' => $sequence,
-                'dn_no' => $dnNo,
-                'seq_dn' => $seqDn
-            ]);
-
-            // Resolve slot by name
-            $slot = Slot::with(['rack', 'item'])
-                ->where('slot_name', $request->slot_name)
-                ->first();
-
-            if (!$slot) {
-                return response()->json([
-                    'error' => 'Slot tidak ditemukan'
-                ], 400);
-            }
-
-            $item = $slot->item;
-
-            if (!$item || $item->erp_code !== $request->erp_code) {
-                return response()->json([
-                    'error' => 'ERP code tidak sesuai dengan item pada slot ini'
-                ], 400);
-            }
-
-            // Capacity check
-            if ($slot->current_qty >= $slot->capacity) {
-                return response()->json([
-                    'error' => 'Slot sudah penuh',
-                    'current_qty' => $slot->current_qty,
-                    'capacity' => $slot->capacity
-                ], 400);
-            }
-
-            // Increment slot current quantity (not global item qty)
-            try {
-                $newQty = $slot->current_qty + 1;
-                \Log::info('Updating slot quantity', [
-                    'slot_id' => $slot->id,
-                    'old_qty' => $slot->current_qty,
-                    'new_qty' => $newQty
-                ]);
-                
-                $slot->update(['current_qty' => $newQty]);
-                \Log::info('Slot quantity updated successfully');
-                
-            } catch (\Exception $updateError) {
-                \Log::error('Failed to update slot quantity', [
-                    'error' => $updateError->getMessage(),
-                    'slot_id' => $slot->id
-                ]);
-                throw $updateError;
-            }
-
-            // Use extracted lot_no from ERP code (already validated above)
-            // $lotNo is already extracted from ERP code parsing
-
-            try {
-                $logData = [
-                    'erp_code' => $item->erp_code,
-                    'part_no' => $item->part_no,
-                    'slot_id' => $slot->id,
-                    'slot_name' => $slot->slot_name,
-                    'rack_name' => $slot->rack->rack_name,
-                    'lot_no' => $lotNo,
-                    'action' => 'store',
-                    'user_id' => $user->id,
-                    'name' => $user->name ?? 'Unknown User',
-                    'qty' => 1
-                ];
-                
-                \Log::info('Creating log entry', $logData);
-                
-                $logEntry = LogStorePull::create($logData);
-                \Log::info('Log entry created successfully', [
-                    'log_id' => $logEntry->id,
-                    'log_data' => $logData
-                ]);
-                
-                // Verify the log entry was created
-                $createdLog = LogStorePull::find($logEntry->id);
-                if ($createdLog) {
-                    \Log::info('Log entry verified in database', [
-                        'log_id' => $createdLog->id,
-                        'erp_code' => $createdLog->erp_code,
-                        'action' => $createdLog->action
-                    ]);
-                } else {
-                    \Log::warning('Log entry not found after creation');
-                }
-                
-            } catch (\Exception $logError) {
-                \Log::error('Failed to create log entry', [
-                    'error' => $logError->getMessage(),
-                    'log_data' => $logData ?? 'not set',
-                    'trace' => $logError->getTraceAsString()
-                ]);
-                throw $logError; // Re-throw to be caught by outer try-catch
-            }
-
-            // Refresh slot data to get updated current_qty
-            $slot->refresh();
-            
+            'slot_name' => 'required|string|exists:slots,slot_name',
+            'erp_code' => 'required|string|min:60|max:63', // Ini adalah full scan string
+            'lot_no' => 'nullable|string'
+        ]);
+        
+        // Parse ERP code structure
+        $fullScanString = $request->erp_code; // Rename untuk clarity
+        $erpParts = explode(';', $fullScanString);
+        
+        if (count($erpParts) !== 8) {
             return response()->json([
-                'success' => true,
-                'message' => 'Berhasil menambahkan 1 box (ERP: ' . $item->erp_code . ')',
-                'current_qty' => $slot->current_qty,
-                'capacity' => $slot->capacity,
-                'slot_name' => $slot->slot_name,
-                'rack_name' => $slot->rack->rack_name,
-                'part_no' => $item->part_no,
-                'lot_no' => $lotNo,
-                // expose part image for UI swap after ERP scan
-                'part_image_url' => $item->part_image_url ?? null,
-                // also return packaging in case UI needs to revert
-                'packaging_image_url' => $item->packaging_image_url ?? null,
-                // Add item data for image resolution
-                'item' => $item
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('storeByErp error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request' => $request->all()
-            ]);
-            
-            return response()->json([
-                'error' => 'Terjadi kesalahan sistem: ' . $e->getMessage()
-            ], 500);
+                'error' => 'Format ERP code tidak valid. Harus memiliki 8 kolom yang dipisahkan dengan semicolon (;)'
+            ], 400);
         }
+        
+        // Extract components - KOLOM 1 adalah ERP CODE yang sebenarnya
+        $actualErpCode = trim($erpParts[0]); // ← INI YANG PENTING!
+        $quantity = trim($erpParts[1]);
+        $lotNo = trim($erpParts[2]);
+        $customerName = trim($erpParts[3]);
+        $poLine = trim($erpParts[4]);
+        $sequence = trim($erpParts[5]);
+        $dnNo = trim($erpParts[6]);
+        $seqDn = trim($erpParts[7]);
+        
+        // Validate lot_no is not empty
+        if (empty($lotNo)) {
+            return response()->json([
+                'error' => 'Lot number tidak boleh kosong dalam ERP code'
+            ], 400);
+        }
+        
+        \Log::info('ERP code parsed successfully', [
+            'actual_erp_code' => $actualErpCode, // Kolom 1
+            'quantity' => $quantity,
+            'lot_no' => $lotNo,
+            'full_scan_string' => $fullScanString
+        ]);
+
+        // Resolve slot by name
+        $slot = Slot::with(['rack', 'item'])
+            ->where('slot_name', $request->slot_name)
+            ->first();
+
+        if (!$slot) {
+            return response()->json([
+                'error' => 'Slot tidak ditemukan'
+            ], 400);
+        }
+
+        $item = $slot->item;
+
+        // ✅ PERBAIKAN: Bandingkan dengan actual ERP code (kolom 1) bukan full string
+        if (!$item || $item->erp_code !== $actualErpCode) {
+            return response()->json([
+                'error' => 'ERP code tidak sesuai dengan item pada slot ini',
+                'expected' => $item ? $item->erp_code : 'null',
+                'scanned' => $actualErpCode // Tampilkan hanya kolom 1
+            ], 400);
+        }
+
+        // Capacity check
+        if ($slot->current_qty >= $slot->capacity) {
+            return response()->json([
+                'error' => 'Slot sudah penuh',
+                'current_qty' => $slot->current_qty,
+                'capacity' => $slot->capacity
+            ], 400);
+        }
+
+        // Update slot quantity
+        $newQty = $slot->current_qty + 1;
+        $slot->update(['current_qty' => $newQty]);
+
+        // Create log entry dengan actual ERP code
+        $logData = [
+            'erp_code' => $actualErpCode, // ✅ Gunakan kolom 1 untuk log
+            'part_no' => $item->part_no,
+            'slot_id' => $slot->id,
+            'slot_name' => $slot->slot_name,
+            'rack_name' => $slot->rack->rack_name,
+            'lot_no' => $lotNo, // ✅ Gunakan kolom 3 untuk lot_no
+            'action' => 'store',
+            'user_id' => $user->id,
+            'name' => $user->name ?? 'Unknown User',
+            'qty' => 1
+        ];
+        
+        LogStorePull::create($logData);
+
+        // Refresh slot data
+        $slot->refresh();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil menambahkan 1 box (ERP: ' . $actualErpCode . ')',
+            'current_qty' => $slot->current_qty,
+            'capacity' => $slot->capacity,
+            'slot_name' => $slot->slot_name,
+            'rack_name' => $slot->rack->rack_name,
+            'part_no' => $item->part_no,
+            'lot_no' => $lotNo,
+            'erp_code' => $actualErpCode, // Return actual ERP code
+            'part_image_url' => $item->part_image_url ?? null,
+            'packaging_image_url' => $item->packaging_image_url ?? null,
+            'item' => $item
+        ]);
+        } catch (\Exception $e) {
+        \Log::error('storeByErp error', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'request' => $request->all()
+        ]);
+        
+        return response()->json([
+            'error' => 'Terjadi kesalahan sistem: ' . $e->getMessage()
+        ], 500);
+    }
     }
 
     // Scan slot QR code untuk posting
