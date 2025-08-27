@@ -96,7 +96,9 @@
             <input type="text" id="box-scan-input" autofocus
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Scan: rack_name lalu ERP code">
-            <p class="text-xs text-gray-500 mt-1">1. Scan Slot; 2. Scan ERP Code</p>
+            <p class="text-xs text-gray-500 mt-1">
+                1. Scan Slot (3-4 karakter); 2. Scan ERP Code (60-63 karakter, format: part_no;qty;lot_no;customer;po_line;seq;dn_no;seq_dn)
+            </p>
         </div>
 
         <!-- Action Buttons -->
@@ -132,25 +134,47 @@ let scannedSlot = null; // moved earlier so handlers can reference
 
 // Scan Slot functionality
 document.getElementById('scan-slot-btn').addEventListener('click', function() {
-    // If slot not scanned yet, read slot_name from input field
-    if (!scannedSlot) {
-        const raw = document.getElementById('box-scan-input').value.trim();
-        if (!raw) {
-            showStatus('Scan/ketik slot_name pada field, lalu tekan Scan', 'warning');
-            document.getElementById('box-scan-input').focus();
-            return;
-        }
-        scanSlotName(raw);
-        return;
-    }
-    // Slot already scanned -> treat button as ERP scan trigger using input value
-    const erp = document.getElementById('box-scan-input').value.trim();
-    if (!erp) {
-        showStatus('Masukkan/scan ERP code', 'warning');
+    const raw = document.getElementById('box-scan-input').value.trim();
+    if (!raw) {
+        showStatus('Scan/ketik slot_name atau ERP code pada field, lalu tekan Scan', 'warning');
         document.getElementById('box-scan-input').focus();
         return;
     }
-    scanErp(erp);
+    
+    // If slot not scanned yet, treat input as slot_name
+    if (!scannedSlot) {
+        // Validate slot_name length (3-4 characters)
+        if (raw.length < 3 || raw.length > 4) {
+            showStatus('Slot name harus memiliki panjang 3-4 karakter', 'error');
+            return;
+        }
+        console.log('Button: calling scanSlotName with:', raw);
+        scanSlotName(raw);
+        return;
+    }
+    
+    // Slot already scanned -> treat input as ERP code
+    // Validate ERP code length (60-63 characters)
+    if (raw.length < 60 || raw.length > 63) {
+        showStatus('ERP code harus memiliki panjang 60-63 karakter', 'error');
+        return;
+    }
+    
+    // Validate ERP code format (must contain semicolons)
+    if (!raw.includes(';')) {
+        showStatus('Format ERP code tidak valid. Harus mengandung semicolon (;)', 'error');
+        return;
+    }
+    
+    // Count semicolons to ensure 8 columns
+    const semicolonCount = (raw.match(/;/g) || []).length;
+    if (semicolonCount !== 7) { // 7 semicolons = 8 columns
+        showStatus('Format ERP code tidak valid. Harus memiliki 8 kolom yang dipisahkan dengan semicolon (;)', 'error');
+        return;
+    }
+    
+    console.log('Button: calling scanErp with:', raw);
+    scanErp(raw);
 });
 
 document.getElementById('image-preview').addEventListener('click', function() {
@@ -203,13 +227,41 @@ document.getElementById('box-scan-input').addEventListener('keypress', function(
         const raw = this.value.trim();
         if (!raw) return;
 
+        console.log('Input received:', raw, 'scannedSlot:', scannedSlot);
+
         // If slot not yet scanned, treat input as slot_name
         if (!scannedSlot) {
+            // Validate slot_name length (3-4 characters)
+            if (raw.length < 3 || raw.length > 4) {
+                showStatus('Slot name harus memiliki panjang 3-4 karakter', 'error');
+                return;
+            }
+            console.log('Calling scanSlotName with:', raw);
             scanSlotName(raw);
             return;
         }
 
         // Otherwise treat as ERP code
+        // Validate ERP code length (60-63 characters)
+        if (raw.length < 60 || raw.length > 63) {
+            showStatus('ERP code harus memiliki panjang 60-63 karakter', 'error');
+            return;
+        }
+        
+        // Validate ERP code format (must contain semicolons)
+        if (!raw.includes(';')) {
+            showStatus('Format ERP code tidak valid. Harus mengandung semicolon (;)', 'error');
+            return;
+        }
+        
+        // Count semicolons to ensure 8 columns
+        const semicolonCount = (raw.match(/;/g) || []).length;
+        if (semicolonCount !== 7) { // 7 semicolons = 8 columns
+            showStatus('Format ERP code tidak valid. Harus memiliki 8 kolom yang dipisahkan dengan semicolon (;)', 'error');
+            return;
+        }
+        
+        console.log('Calling scanErp with:', raw);
         scanErp(raw);
     }
 });
@@ -313,16 +365,39 @@ function scanSlotName(slotName) {
         },
         body: JSON.stringify({ slot_name: slotName })
     })
-    .then(r => r.json())
+    .then(response => {
+        return response.text().then(text => {
+            try {
+                const data = JSON.parse(text);
+                // Check if response was successful but contains error message
+                if (!response.ok && data.error) {
+                    // This is a valid JSON response with an error message
+                    return data;
+                } else if (!response.ok) {
+                    // This is an HTTP error without JSON error message
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return data;
+            } catch (e) {
+                console.error('Response text:', text);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                throw new Error('Invalid JSON response from server');
+            }
+        });
+    })
     .then(data => {
         console.log('scanSlotName response:', data);
         if (data.error) {
             showStatus(data.error, 'error');
             scannedSlot = null;
+            console.log('Error occurred, scannedSlot reset to:', scannedSlot);
             return;
         }
         scannedSlot = data.slot.slot_name;
         currentSlot = data.slot;
+        console.log('scannedSlot set to:', scannedSlot);
         // Prefill UI fields
         document.getElementById('rack-display').value = data.rack.rack_name;
         document.getElementById('part-no-display').value = data.item ? data.item.part_no : '';
@@ -337,7 +412,10 @@ function scanSlotName(slotName) {
             showImage(pkgUrl, 'Packaging image');
         }
     })
-    .catch(err => showStatus('Error scanning slot: ' + err.message, 'error'));
+    .catch(err => {
+        console.error('Slot scan error:', err);
+        showStatus('Error scanning slot: ' + err.message, 'error');
+    });
 }
 
 // New: after rack scanned, scan ERP code to increment
@@ -354,26 +432,70 @@ function scanErp(erpCode) {
         },
         body: JSON.stringify({ slot_name: scannedSlot, erp_code: erpCode })
     })
-    .then(r => r.json())
+    .then(response => {
+        return response.text().then(text => {
+            try {
+                const data = JSON.parse(text);
+                // Check if response was successful but contains error message
+                if (!response.ok && data.error) {
+                    // This is a valid JSON response with an error message
+                    return data;
+                } else if (!response.ok) {
+                    // This is an HTTP error without JSON error message
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return data;
+            } catch (e) {
+                console.error('Response text:', text);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                throw new Error('Invalid JSON response from server');
+            }
+        });
+    })
     .then(data => {
         console.log('storeByErp response:', data);
         if (data.error) {
             showStatus(data.error, 'error');
             return;
         }
-        // Update UI
+        
+        // Update UI with real-time data
         document.getElementById('part-no-display').value = data.part_no;
         document.getElementById('rack-display').value = data.rack_name;
-        document.getElementById('available-display').value = data.current_qty + '/' + currentSlot.capacity;
+        document.getElementById('available-display').value = data.current_qty + '/' + data.capacity;
+        
+        // Update currentSlot with new quantity
+        if (currentSlot) {
+            currentSlot.current_qty = data.current_qty;
+        }
+        
         showStatus(data.message, 'success');
         document.getElementById('box-scan-input').value = '';
         document.getElementById('box-scan-input').focus();
+        
         // swap to part image if available (with fallback)
         const partUrl = resolvePartUrl(data);
         console.log('resolved part url:', partUrl);
-        if (partUrl) showImage(partUrl, 'Part image');
+        if (partUrl) {
+            showImage(partUrl, 'Part image');
+        } else {
+            console.warn('No part image URL resolved');
+        }
+        
+        // Log success for debugging
+        console.log('ERP scan completed successfully:', {
+            part_no: data.part_no,
+            current_qty: data.current_qty,
+            capacity: data.capacity,
+            part_image_url: data.part_image_url
+        });
     })
-    .catch(err => showStatus('Error storing by ERP: ' + err.message, 'error'));
+    .catch(err => {
+        console.error('ERP scan error:', err);
+        showStatus('Error storing by ERP: ' + err.message, 'error');
+    });
 }
 
 function hideSlotInfo() {
@@ -433,14 +555,37 @@ function resolvePackagingUrl(data) {
 }
 
 function resolvePartUrl(data) {
-    if (data.part_image_url) return data.part_image_url;
+    console.log('Resolving part URL from data:', data);
+    
+    // First priority: direct part_image_url from response
+    if (data.part_image_url) {
+        console.log('Using direct part_image_url:', data.part_image_url);
+        return data.part_image_url;
+    }
+    
+    // Second priority: from item data
     if (data.item && data.item.part_img) {
         const val = data.item.part_img;
+        console.log('Using item.part_img:', val);
+        
         if (/^https?:\/\//i.test(val)) return val;
         if (val.startsWith('storage/') || val.startsWith('/storage/')) return '{{ asset('') }}' + val.replace(/^\//,'');
         if (val.includes('/')) return '{{ asset('storage') }}/' + val.replace(/^\//,'');
         return '{{ asset('storage/parts') }}/' + val;
     }
+    
+    // Third priority: try to get from currentSlot if available
+    if (currentSlot && currentSlot.item && currentSlot.item.part_img) {
+        const val = currentSlot.item.part_img;
+        console.log('Using currentSlot.item.part_img:', val);
+        
+        if (/^https?:\/\//i.test(val)) return val;
+        if (val.startsWith('storage/') || val.startsWith('/storage/')) return '{{ asset('') }}' + val.replace(/^\//,'');
+        if (val.includes('/')) return '{{ asset('storage') }}/' + val.replace(/^\//,'');
+        return '{{ asset('storage/parts') }}/' + val;
+    }
+    
+    console.warn('No part image URL could be resolved');
     return null;
 }
 </script>
