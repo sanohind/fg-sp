@@ -110,6 +110,10 @@
                     Scan 
                 </span>
             </button>
+            <a id="back-menu-btn" href="{{ route('operator.index') }}"
+                class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-8 rounded-md transition duration-200 ease-in-out shadow hidden">
+                Main Menu
+            </a>
         </div>
     </div>
 
@@ -402,6 +406,17 @@ function scanSlotName(slotName) {
         document.getElementById('rack-display').value = data.rack.rack_name;
         document.getElementById('part-no-display').value = data.item ? data.item.part_no : '';
         document.getElementById('available-display').value = data.current_qty + '/' + data.capacity;
+        // When full on first slot scan, change buttons: show Back to Menu and rename Scan to Scan Again
+        if (data.current_qty >= data.capacity) {
+            const scanBtn = document.getElementById('scan-slot-btn');
+            if (scanBtn) {
+                scanBtn.innerText = 'Scan Again';
+            }
+            const backBtn = document.getElementById('back-menu-btn');
+            if (backBtn) {
+                backBtn.classList.remove('hidden');
+            }
+        }
         showSlotInfo(data.slot);
         showStatus('Slot scanned: ' + scannedSlot + '. Now scan ERP code.', 'success');
         document.getElementById('box-scan-input').value = '';
@@ -475,6 +490,18 @@ function scanErp(erpCode) {
         document.getElementById('box-scan-input').value = '';
         document.getElementById('box-scan-input').focus();
         
+        // When full, change buttons: show Back to Menu and rename Scan to Scan Again
+        if (data.current_qty >= data.capacity) {
+            const scanBtn = document.getElementById('scan-slot-btn');
+            if (scanBtn) {
+                scanBtn.innerText = 'Scan Again';
+            }
+            const backBtn = document.getElementById('back-menu-btn');
+            if (backBtn) {
+                backBtn.classList.remove('hidden');
+            }
+        }
+
         // swap to part image if available (with fallback)
         const partUrl = resolvePartUrl(data);
         console.log('resolved part url:', partUrl);
