@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Auth;
 
 class RackController extends Controller
 {
+    private function getCurrentUserId()
+    {
+        return session('user.id');
+    }
+
     public function index()
     {
         $racks = Rack::withCount([
@@ -56,7 +61,7 @@ class RackController extends Controller
         $request->validate([
             'rack_name' => 'required|string|max:255|unique:rack,rack_name,' . $id,
             'total_slots' => 'required|integer|min:1',
-            'reason' => 'required|string|max:500',
+            'notes' => 'required|string|max:500',
         ]);
 
         $oldRackName = $rack->rack_name;
@@ -67,17 +72,19 @@ class RackController extends Controller
             'total_slots' => $request->total_slots,
         ]);
 
-        // Record history untuk update operation
-        RackHistory::create([
-            'rack_id' => $rack->id,
-            'action' => 'update',
-            'field_changed' => 'rack_name',
-            'old_value' => $oldRackName,
-            'new_value' => $rack->rack_name,
-            'changed_by' => Auth::id(),
-            'name' => 'Rack Name Updated',
-            'notes' => $request->reason,
-        ]);
+        // Record history untuk rack_name jika berubah
+        if ($oldRackName != $rack->rack_name) {
+            RackHistory::create([
+                'rack_id' => $rack->id,
+                'action' => 'update',
+                'field_changed' => 'rack_name',
+                'old_value' => $oldRackName,
+                'new_value' => $rack->rack_name,
+                'changed_by' => $this->getCurrentUserId(),
+                'name' => 'Rack Name Updated',
+                'notes' => $request->notes,
+            ]);
+        }
 
         // Record history untuk total_slots jika berubah
         if ($oldTotalSlots != $rack->total_slots) {
@@ -87,9 +94,9 @@ class RackController extends Controller
                 'field_changed' => 'total_slots',
                 'old_value' => $oldTotalSlots,
                 'new_value' => $rack->total_slots,
-                'changed_by' => Auth::id(),
+                'changed_by' => $this->getCurrentUserId(),
                 'name' => 'Total Slots Updated',
-                'notes' => $request->reason,
+                'notes' => $request->notes,
             ]);
         }
 
@@ -110,7 +117,7 @@ class RackController extends Controller
                 'total_slots' => $rack->total_slots
             ]),
             'new_value' => null,
-            'changed_by' => Auth::id(),
+            'changed_by' => $this->getCurrentUserId(),
             'name' => 'Rack Deleted',
             'notes' => 'Rack deleted',
         ]);

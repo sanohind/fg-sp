@@ -57,6 +57,9 @@
         <a href="{{ route('admin.slot.add') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
             Add Slot
         </a>
+        <a href="{{ route('admin.slot.history.all') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
+            Change Log
+        </a>
     </div>
 
     <!-- Table -->
@@ -85,14 +88,32 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div class="flex space-x-2">
                             @if($slot->item_id)
-                                <a href="{{ route('admin.slot.detail', $slot->id) }}" class="bg-[#0A2856] text-white px-3 py-1 rounded text-xs hover:bg-[#0A2856]/90 min-w-[100px] inline-block text-center">
-                                    View Detail
-                                </a>
+                                @if($slot->current_qty == 0)
+                                    <a href="{{ route('admin.slots.change-part', $slot->id) }}" class="bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 min-w-[100px] inline-block text-center">
+                                        Change Part
+                                    </a>
+                                @else
+                                    <a href="{{ route('admin.slot.detail', $slot->id) }}" class="bg-[#0A2856] text-white px-3 py-1 rounded text-xs hover:bg-[#0A2856]/90 min-w-[100px] inline-block text-center">
+                                        View Detail
+                                    </a>
+                                @endif
                             @else
                                 <a href="{{ route('admin.slot.assign-part', $slot->id) }}" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700 min-w-[100px] inline-block text-center">
                                     Assign Part
                                 </a>
+                                @if($slot->current_qty == 0)
+                                    <form action="{{ route('admin.slots.destroy', $slot->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this slot?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px] inline-block text-center">
+                                            Delete
+                                        </button>
+                                    </form>
+                                @endif
                             @endif
+                            <a href="{{ route('admin.slots.history', $slot->id) }}" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 min-w-[50px] inline-block text-center">
+                                History
+                            </a>
                             <a href="{{ route('admin.slots.edit', $slot->id) }}" class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px] inline-block text-center">
                                 Edit
                             </a>
@@ -101,7 +122,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td class="px-6 py-4 text-center text-sm text-gray-500">No slots found</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                     <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                     <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                     <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>

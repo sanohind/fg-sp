@@ -57,6 +57,9 @@
         <a href="{{ route('admin.rack.create') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
             Add Rack
         </a>
+        <a href="{{ route('admin.rack.history.all') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
+            Change Log
+        </a>
     </div>
 
 <!-- Table -->
@@ -88,19 +91,21 @@
                         <a href="{{ route('admin.rack.edit', $rack->id) }}" class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px] text-center">
                             Edit
                         </a>
-                        <form action="{{ route('admin.rack.destroy', $rack->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this rack?')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                Delete
-                            </button>
-                        </form>
+                        @if($rack->assigned_slots_count == 0)
+                            <form action="{{ route('admin.rack.destroy', $rack->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this rack?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
+                                    Delete
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </td>
             </tr>
             @empty
             <tr>
-                <td class="px-6 py-4 text-center text-sm text-gray-500">No racks available</td>
+                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                 <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                 <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                 <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
@@ -123,27 +128,7 @@
 </div>
 </div>
 
-@if(session('success'))
-<div id="success-alert" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-md shadow-lg z-50">
-    {{ session('success') }}
-</div>
-<script>
-    setTimeout(function() {
-        document.getElementById('success-alert').style.display = 'none';
-    }, 3000);
-</script>
-@endif
-
-@if(session('error'))
-<div id="error-alert" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-md shadow-lg z-50">
-    {{ session('error') }}
-</div>
-<script>
-    setTimeout(function() {
-        document.getElementById('error-alert').style.display = 'none';
-    }, 3000);
-</script>
-@endif
+ 
 @endsection
 
 @section('scripts')

@@ -10,10 +10,25 @@ use Illuminate\Support\Facades\Storage;
 
 class ItemController extends Controller
 {
+    private function getCurrentUserId()
+    {
+        return session('user.id');
+    }
+
     public function index()
     {
-        $items = Item::with('slot')->get();
-        return view('admin.items', compact('items'));
+        $items = Item::all();
+        
+        // Calculate total items
+        $totalItems = $items->count();
+        
+        // Get items with slot assignment info
+        $itemsWithSlotInfo = $items->map(function($item) {
+            $item->is_assigned = \App\Models\Slot::where('item_id', $item->id)->exists();
+            return $item;
+        });
+        
+        return view('admin.items', compact('itemsWithSlotInfo', 'totalItems'));
     }
 
     public function create()
@@ -101,7 +116,7 @@ class ItemController extends Controller
             'qty' => 'required|integer|min:0',
             'part_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'packaging_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'reason' => 'required|string|max:500',
+            'notes' => 'required|string|max:500',
         ], [
             'erp_code.required' => 'ERP Code harus diisi.',
             'erp_code.unique' => 'ERP Code sudah ada dalam sistem.',
@@ -118,7 +133,7 @@ class ItemController extends Controller
             'packaging_image.image' => 'Packaging Image harus berupa gambar.',
             'packaging_image.mimes' => 'Packaging Image harus berformat jpeg, png, jpg, atau gif.',
             'packaging_image.max' => 'Packaging Image maksimal 2MB.',
-            'reason.required' => 'Alasan perubahan harus diisi.',
+            'notes.required' => 'Notes harus diisi.',
         ]);
 
         try {
@@ -173,9 +188,9 @@ class ItemController extends Controller
                         'field_changed' => $field,
                         'old_value' => $oldValue,
                         'new_value' => $data[$field],
-                        'changed_by' => Auth::id(),
+                        'changed_by' => $this->getCurrentUserId(),
                         'name' => ucfirst($field) . ' Updated',
-                        'notes' => $request->reason,
+                        'notes' => $request->notes,
                     ]);
                 }
             }
@@ -205,7 +220,7 @@ class ItemController extends Controller
                     'qty' => $item->qty
                 ]),
                 'new_value' => null,
-                'changed_by' => Auth::id(),
+                'changed_by' => $this->getCurrentUserId(),
                 'name' => 'Item Deleted',
                 'notes' => 'Item deleted',
             ]);
@@ -228,7 +243,7 @@ class ItemController extends Controller
 
     public function show($id)
     {
-        $item = Item::with('slot')->findOrFail($id);
+        $item = Item::findOrFail($id);
         return view('admin.item.show', compact('item'));
     }
 
@@ -237,6 +252,6 @@ class ItemController extends Controller
         $item = Item::findOrFail($id);
         $histories = ItemHistory::where('item_id', $id)->with('changedBy')->orderBy('created_at', 'desc')->get();
         
-        return view('admin.item.history', compact('item', 'histories'));
+        return view('admin.item-history', compact('item', 'histories'));
     }
 }

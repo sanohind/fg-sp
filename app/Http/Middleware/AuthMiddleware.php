@@ -23,8 +23,3 @@ class AuthMiddleware
         return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
     }
 }
-
-
-
-
-

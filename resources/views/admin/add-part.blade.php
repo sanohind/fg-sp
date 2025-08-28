@@ -9,7 +9,7 @@
         <nav class="text-sm font-semibold mb-2" aria-label="Breadcrumb">
             <ol class="list-none p-0 inline-flex">
                 <li class="flex items-center">
-                    <a href="{{ route('admin.items') }}" class="text-[#0A2856] hover:text-[#0A2856]/80">Items</a>
+                    <a href="{{ route('admin.item.index') }}" class="text-[#0A2856] hover:text-[#0A2856]/80">Items</a>
                     <svg class="fill-current w-3 h-3 mx-3 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
                         <path d="M285.476 272.971L91.132 467.314c-9.373 9.373-24.569 9.373-33.941 0l-22.667-22.667c-9.357-9.357-9.375-24.522-.04-33.901L188.505 256 34.484 101.255c-9.335-9.379-9.317-24.544.04-33.901l22.667-22.667c9.373-9.373 24.569-9.373 33.941 0L285.475 239.03c9.373 9.372 9.373 24.568.001 33.941z"/>
                     </svg>
@@ -23,7 +23,7 @@
     </div>
 
     <!-- Form -->
-    <form action="{{ route('admin.items.store') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('admin.item.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="space-y-6">
             <!-- Row 1: ERP Code, Part No, Model (3 columns) -->
@@ -89,14 +89,14 @@
 
                 <!-- Quantity -->
                 <div>
-                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                    <label for="qty" class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                     <input type="number" 
-                           name="quantity" 
-                           id="quantity" 
-                           value="{{ old('quantity') }}"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm @error('quantity') border-red-500 @enderror" 
+                           name="qty" 
+                           id="qty" 
+                           value="{{ old('qty') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm @error('qty') border-red-500 @enderror" 
                            placeholder="Enter quantity">
-                    @error('quantity')
+                    @error('qty')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
@@ -118,17 +118,17 @@
         @enderror
     </div>
 
-    <!-- Package Image -->
+    <!-- Packaging Image -->
     <div>
-        <label for="package_image" class="block text-sm font-medium text-gray-700 mb-1">Package Image</label>
+        <label for="packaging_image" class="block text-sm font-medium text-gray-700 mb-1">Packaging Image</label>
         <div class="flex space-x-2">
             <input type="file" 
-                   name="package_image" 
-                   id="package_image" 
+                   name="packaging_image" 
+                   id="packaging_image" 
                    accept="image/*"
-                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px] file:mr-4 file:py-0 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#0A2856] file:text-white hover:file:bg-[#0A2856]/90 file:h-6 @error('package_image') border-red-500 @enderror">
+                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px] file:mr-4 file:py-0 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#0A2856] file:text-white hover:file:bg-[#0A2856]/90 file:h-6 @error('packaging_image') border-red-500 @enderror">
         </div>
-        @error('package_image')
+        @error('packaging_image')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>
@@ -152,7 +152,7 @@
 
         <!-- Action Buttons -->
         <div class="mt-8 flex justify-center space-x-4">
-            <a href="{{ route('admin.items') }}" 
+            <a href="{{ route('admin.item.index') }}" 
                class="px-6 py-1.5 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 text-center min-w-[100px]">
                 Cancel
             </a>

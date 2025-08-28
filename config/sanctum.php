@@ -34,7 +34,8 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    // Limit Sanctum authentication to API guard for token-based auth
+    'guard' => ['api'],
 
     /*
     |--------------------------------------------------------------------------
@@ -75,10 +76,9 @@ return [
     |
     */
 
+    // Disable stateful session-related middleware for API token usage
     'middleware' => [
-        'authenticate_session' => Laravel\Sanctum\Http\Middleware\AuthenticateSession::class,
-        'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
-        'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        'authenticate_session' => null,
     ],
 
 ];

@@ -11,27 +11,37 @@ use Illuminate\Support\Facades\Auth;
 
 class SlotController extends Controller
 {
+    private function getCurrentUserId()
+    {
+        return session('user.id');
+    }
+
     public function index()
     {
         $slots = Slot::with(['rack', 'item'])->get();
-        return view('admin.slot.index', compact('slots'));
+        
+        // Calculate statistics
+        $totalSlots = $slots->count();
+        $filledSlots = $slots->where('item_id', '!=', null)->count();
+        $emptySlots = $totalSlots - $filledSlots;
+        
+        return view('admin.slot', compact('slots', 'totalSlots', 'filledSlots', 'emptySlots'));
     }
 
     public function create()
     {
         $racks = Rack::all();
-        return view('admin.slot.create', compact('racks'));
+        return view('admin.add-slot', compact('racks'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'rack_id' => 'required|exists:racks,id',
+            'rack' => 'required|string|max:255',
             'slot_name' => 'required|string|max:255|unique:slots',
             'capacity' => 'required|integer|min:1',
         ], [
-            'rack_id.required' => 'Rack harus dipilih.',
-            'rack_id.exists' => 'Rack tidak ditemukan.',
+            'rack.required' => 'Rack harus dipilih.',
             'slot_name.required' => 'Slot Name harus diisi.',
             'slot_name.unique' => 'Slot Name sudah ada dalam sistem.',
             'capacity.required' => 'Capacity harus diisi.',
@@ -40,15 +50,36 @@ class SlotController extends Controller
         ]);
 
         try {
-            Slot::create([
-                'rack_id' => $request->rack_id,
+            // Debug logging
+            \Log::info('Slot creation attempt', [
+                'request_data' => $request->all(),
+                'user_id' => $this->getCurrentUserId()
+            ]);
+
+            // Find rack by name
+            $rack = Rack::where('rack_name', $request->rack)->first();
+            if (!$rack) {
+                \Log::error('Rack not found', ['rack_name' => $request->rack]);
+                return back()->withInput()->with('error', 'Rack tidak ditemukan.');
+            }
+
+            \Log::info('Rack found', ['rack' => $rack->toArray()]);
+
+            $slot = Slot::create([
+                'rack_id' => $rack->id,
                 'slot_name' => $request->slot_name,
                 'capacity' => $request->capacity,
                 'current_qty' => 0,
             ]);
 
-            return redirect()->route('admin.slots.index')->with('success', 'Slot berhasil ditambahkan!');
+            \Log::info('Slot created successfully', ['slot' => $slot->toArray()]);
+
+            return redirect()->route('admin.slot')->with('success', 'Slot berhasil ditambahkan!');
         } catch (\Exception $e) {
+            \Log::error('Slot creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->withInput()->with('error', 'Gagal menambahkan slot. Silakan coba lagi.');
         }
     }
@@ -57,7 +88,7 @@ class SlotController extends Controller
     {
         $slot = Slot::findOrFail($id);
         $racks = Rack::all();
-        return view('admin.slot.edit', compact('slot', 'racks'));
+        return view('admin.edit-slot', compact('slot', 'racks'));
     }
 
     public function update(Request $request, $id)
@@ -65,22 +96,27 @@ class SlotController extends Controller
         $slot = Slot::findOrFail($id);
         
         $request->validate([
-            'rack_id' => 'required|exists:racks,id',
+            'rack' => 'required|string|max:255',
             'slot_name' => 'required|string|max:255|unique:slots,slot_name,' . $id,
             'capacity' => 'required|integer|min:1',
-            'reason' => 'required|string|max:500',
+            'notes' => 'required|string|max:500',
         ], [
-            'rack_id.required' => 'Rack harus dipilih.',
-            'rack_id.exists' => 'Rack tidak ditemukan.',
+            'rack.required' => 'Rack harus dipilih.',
             'slot_name.required' => 'Slot Name harus diisi.',
             'slot_name.unique' => 'Slot Name sudah ada dalam sistem.',
             'capacity.required' => 'Capacity harus diisi.',
             'capacity.integer' => 'Capacity harus berupa angka.',
             'capacity.min' => 'Capacity minimal 1.',
-            'reason.required' => 'Alasan perubahan harus diisi.',
+            'notes.required' => 'Notes harus diisi.',
         ]);
 
         try {
+            // Find rack by name
+            $rack = Rack::where('rack_name', $request->rack)->first();
+            if (!$rack) {
+                return back()->withInput()->with('error', 'Rack tidak ditemukan.');
+            }
+
             $oldData = [
                 'rack_id' => $slot->rack_id,
                 'slot_name' => $slot->slot_name,
@@ -88,22 +124,22 @@ class SlotController extends Controller
             ];
 
             $slot->update([
-                'rack_id' => $request->rack_id,
+                'rack_id' => $rack->id,
                 'slot_name' => $request->slot_name,
                 'capacity' => $request->capacity,
             ]);
 
             // Record history untuk setiap field yang berubah
-            if (($oldData['rack_id'] ?? null) != $request->rack_id) {
+            if (($oldData['rack_id'] ?? null) != $rack->id) {
                 SlotHistory::create([
                     'slot_id' => $slot->id,
                     'action' => 'update',
                     'field_changed' => 'rack_id',
                     'old_value' => $oldData['rack_id'] ?? null,
-                    'new_value' => $request->rack_id,
-                    'changed_by' => Auth::id(),
+                    'new_value' => $rack->id,
+                    'changed_by' => $this->getCurrentUserId(),
                     'name' => 'Rack ID Updated',
-                    'notes' => $request->reason,
+                    'notes' => $request->notes,
                 ]);
             }
 
@@ -114,9 +150,9 @@ class SlotController extends Controller
                     'field_changed' => 'slot_name',
                     'old_value' => $oldData['slot_name'] ?? null,
                     'new_value' => $request->slot_name,
-                    'changed_by' => Auth::id(),
+                    'changed_by' => $this->getCurrentUserId(),
                     'name' => 'Slot Name Updated',
-                    'notes' => $request->reason,
+                    'notes' => $request->notes,
                 ]);
             }
 
@@ -127,13 +163,13 @@ class SlotController extends Controller
                     'field_changed' => 'capacity',
                     'old_value' => $oldData['capacity'] ?? null,
                     'new_value' => $request->capacity,
-                    'changed_by' => Auth::id(),
+                    'changed_by' => $this->getCurrentUserId(),
                     'name' => 'Capacity Updated',
-                    'notes' => $request->reason,
+                    'notes' => $request->notes,
                 ]);
             }
 
-            return redirect()->route('admin.slots.index')->with('success', 'Slot berhasil diperbarui!');
+            return redirect()->route('admin.slot')->with('success', 'Slot berhasil diperbarui!');
         } catch (\Exception $e) {
             return back()->withInput()->with('error', 'Gagal memperbarui slot. Silakan coba lagi.');
         }
@@ -156,24 +192,28 @@ class SlotController extends Controller
                     'item_id' => $slot->item_id
                 ]),
                 'new_value' => null,
-                'changed_by' => Auth::id(),
+                'changed_by' => $this->getCurrentUserId(),
                 'name' => 'Slot Deleted',
                 'notes' => 'Slot deleted',
             ]);
 
             $slot->delete();
 
-            return redirect()->route('admin.slots.index')->with('success', 'Slot berhasil dihapus!');
+            return redirect()->route('admin.slot')->with('success', 'Slot berhasil dihapus!');
         } catch (\Exception $e) {
-            return redirect()->route('admin.slots.index')->with('error', 'Gagal menghapus slot. Silakan coba lagi.');
+            return redirect()->route('admin.slot')->with('error', 'Gagal menghapus slot. Silakan coba lagi.');
         }
     }
 
     public function assignPart($id)
     {
         $slot = Slot::findOrFail($id);
-        $items = Item::whereNull('slot_id')->get(); // Only unassigned items
-        return view('admin.slot.assign-part', compact('slot', 'items'));
+        
+        // Get items that are not assigned to any slot
+        $assignedItemIds = Slot::whereNotNull('item_id')->pluck('item_id')->toArray();
+        $items = Item::whereNotIn('id', $assignedItemIds)->get();
+        
+        return view('admin.assign-part', compact('slot', 'items'));
     }
 
     public function storeAssignPart(Request $request, $id)
@@ -187,8 +227,9 @@ class SlotController extends Controller
 
         $item = Item::findOrFail($request->item_id);
         
-        // Check if item is already assigned
-        if ($item->slot_id) {
+        // Check if item is already assigned to another slot
+        $existingSlot = Slot::where('item_id', $request->item_id)->first();
+        if ($existingSlot) {
             return back()->with('error', 'Item is already assigned to another slot');
         }
 
@@ -196,9 +237,6 @@ class SlotController extends Controller
 
         // Update slot with item
         $slot->update(['item_id' => $request->item_id]);
-        
-        // Update item with slot
-        $item->update(['slot_id' => $slot->id]);
 
         // Record history untuk assign part operation
         SlotHistory::create([
@@ -207,19 +245,23 @@ class SlotController extends Controller
             'field_changed' => 'item_id',
             'old_value' => $oldItemId,
             'new_value' => $slot->item_id,
-            'changed_by' => Auth::id(),
+            'changed_by' => $this->getCurrentUserId(),
             'name' => 'Item Assigned',
             'notes' => $request->reason,
         ]);
 
-        return redirect()->route('admin.slot.index')->with('success', 'Part assigned successfully');
+        return redirect()->route('admin.slot')->with('success', 'Part assigned successfully');
     }
 
     public function changePart($id)
     {
         $slot = Slot::findOrFail($id);
-        $items = Item::whereNull('slot_id')->orWhere('id', $slot->item_id)->get();
-        return view('admin.slot.change-part', compact('slot', 'items'));
+        
+        // Get items that are not assigned to any slot, plus the current item in this slot
+        $assignedItemIds = Slot::whereNotNull('item_id')->where('id', '!=', $slot->id)->pluck('item_id')->toArray();
+        $items = Item::whereNotIn('id', $assignedItemIds)->orWhere('id', $slot->item_id)->get();
+        
+        return view('admin.change-part', compact('slot', 'items'));
     }
 
     public function storeChangePart(Request $request, $id)
@@ -235,19 +277,16 @@ class SlotController extends Controller
         $newItem = Item::findOrFail($request->item_id);
 
         // If new item is already assigned to another slot
-        if ($newItem->slot_id && $newItem->slot_id != $slot->id) {
+        $existingSlot = Slot::where('item_id', $request->item_id)->where('id', '!=', $slot->id)->first();
+        if ($existingSlot) {
             return back()->with('error', 'Item is already assigned to another slot');
         }
 
-        // Remove old item assignment
-        if ($oldItemId) {
-            $oldItem = Item::find($oldItemId);
-            $oldItem->update(['slot_id' => null]);
-        }
+        // Remove old item assignment - no need to update item table since it doesn't have slot_id
+        // The relationship is managed through the slots table
 
         // Assign new item
         $slot->update(['item_id' => $request->item_id]);
-        $newItem->update(['slot_id' => $slot->id]);
 
         // Record history untuk change part operation
         SlotHistory::create([
@@ -256,25 +295,25 @@ class SlotController extends Controller
             'field_changed' => 'item_id',
             'old_value' => $oldItemId,
             'new_value' => $slot->item_id,
-            'changed_by' => Auth::id(),
+            'changed_by' => $this->getCurrentUserId(),
             'name' => 'Item Changed',
             'notes' => $request->reason,
         ]);
 
-        return redirect()->route('admin.slot.index')->with('success', 'Part changed successfully');
+        return redirect()->route('admin.slot')->with('success', 'Part changed successfully');
     }
 
     public function detail($id)
     {
         $slot = Slot::with(['rack', 'item'])->findOrFail($id);
-        return view('admin.slot.detail', compact('slot'));
+        return view('admin.slot-detail', compact('slot'));
     }
 
     public function history($id)
     {
         $slot = Slot::findOrFail($id);
-        $histories = SlotHistory::where('slot_id', $id)->with(['changedBy', 'item'])->orderBy('created_at', 'desc')->get();
+        $histories = SlotHistory::where('slot_id', $id)->with('changedBy')->orderBy('created_at', 'desc')->get();
         
-        return view('admin.slot.history', compact('slot', 'histories'));
+        return view('admin.slot-history', compact('slot', 'histories'));
     }
 }

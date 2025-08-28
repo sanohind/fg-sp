@@ -13,28 +13,31 @@ class AuthApiController extends Controller
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'username' => ['required', 'string'],
+            'username' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
-            'device_name' => ['nullable', 'string'],
+            'device_name' => ['nullable', 'string', 'max:255'],
         ]);
-
+    
         $user = User::where('username', $validated['username'])->first();
-        if (!$user || !Hash::check($validated['password'], (string)($user->password ?? ''))) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+        
+        if (!$user || !Hash::check($validated['password'], $user->password)) {
+            return response()->json([
+                'message' => 'The provided credentials are incorrect.'
+            ], 401);
         }
-
+    
         $token = $user->createToken($validated['device_name'] ?? 'api')->plainTextToken;
-
         $role = DB::table('roles')->where('id', $user->role_id)->value('role_name');
-
+    
         return response()->json([
-            'token' => $token,
             'user' => [
                 'id' => $user->id,
                 'username' => $user->username,
                 'name' => $user->name,
                 'role' => $role,
             ],
+            'token' => $token,
+            'token_type' => 'Bearer'
         ]);
     }
 

@@ -36,14 +36,20 @@ class RoleMiddleware
             return redirect()->route('login')->with('error', 'Tidak memiliki akses.');
         }
 
-        // Fallback: session-based user (web)
-        $sessionUser = $request->session()->get('user');
-        if ($sessionUser) {
-            $roleName = strtolower((string) ($sessionUser['role'] ?? ''));
-            if (in_array($roleName, $requiredRoles)) {
-                return $next($request);
+        // Fallback: session-based user (web) - only for web requests
+        if (!$request->expectsJson()) {
+            try {
+                $sessionUser = $request->session()->get('user');
+                if ($sessionUser) {
+                    $roleName = strtolower((string) ($sessionUser['role'] ?? ''));
+                    if (in_array($roleName, $requiredRoles)) {
+                        return $next($request);
+                    }
+                    return redirect()->route('login')->with('error', 'Tidak memiliki akses.');
+                }
+            } catch (\Exception $e) {
+                // Session not available, continue to next check
             }
-            return redirect()->route('login')->with('error', 'Tidak memiliki akses.');
         }
 
         // Not authenticated

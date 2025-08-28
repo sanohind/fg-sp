@@ -60,21 +60,24 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:superadmin,admin'])->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('home');
     
-    // Items Routes (AdminController)
-    Route::get('/items', [AdminController::class, 'items'])->name('items');
-    Route::get('/items/add', [AdminController::class, 'addItem'])->name('items.add');
-    Route::post('/items/store', [AdminController::class, 'storeItem'])->name('items.store');
+    // Items Routes (ItemController - untuk CRUD operations)
+    // Route::get('/items', [ItemController::class, 'index'])->name('items');
+    // Route::get('/items/add', [ItemController::class, 'create'])->name('items.add');
+    // Route::post('/items/store', [ItemController::class, 'store'])->name('items.store');
     
     // Slots Routes (AdminController)
-    Route::get('/slot', [AdminController::class, 'slot'])->name('slot');
-    Route::get('/slot/add', [AdminController::class, 'addSlot'])->name('slot.add');
-    Route::post('/slot/store', [AdminController::class, 'storeSlot'])->name('slot.store');
-    Route::get('/slot/{id}/detail', [AdminController::class, 'slotDetail'])->name('slot.detail');
-    Route::get('/slot/{id}/assign-part', [AdminController::class, 'assignPart'])->name('slot.assign-part');
-    Route::post('/slot/{id}/assign-part', [AdminController::class, 'storeAssignPart'])->name('slot.store-assign-part');
+    Route::get('/slot', [SlotController::class, 'index'])->name('slot');
+    Route::get('/slot/add', [SlotController::class, 'create'])->name('slot.add');
+    Route::post('/slot/store', [SlotController::class, 'store'])->name('slot.store');
+    Route::get('/slot/{id}/detail', [SlotController::class, 'detail'])->name('slot.detail');
+    Route::get('/slot/{id}/assign-part', [SlotController::class, 'assignPart'])->name('slot.assign-part');
+    Route::post('/slot/{id}/assign-part', [SlotController::class, 'storeAssignPart'])->name('slot.store-assign-part');
     
     // History Routes (AdminController)
     Route::get('/history', [AdminController::class, 'history'])->name('history');
+    Route::get('/item-history', [AdminController::class, 'itemHistory'])->name('item.history.all');
+    Route::get('/rack-history-all', [AdminController::class, 'rackHistoryAll'])->name('rack.history.all');
+    Route::get('/slot-history', [AdminController::class, 'slotHistory'])->name('slot.history.all');
     
     // Rack Routes
     Route::resource('rack', RackController::class);

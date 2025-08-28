@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Rack History')
+@section('title', 'Slot History All')
 
 @section('content')
 <div class="p-6">
@@ -9,35 +9,30 @@
         <nav class="text-sm font-semibold mb-2" aria-label="Breadcrumb">
             <ol class="list-none p-0 inline-flex">
                 <li class="flex items-center">
-                    <a href="{{ route('admin.rack.index') }}" class="text-[#0A2856] hover:text-[#0A2856]/80">Racks</a>
+                    <a href="{{ route('admin.slot') }}" class="text-[#0A2856] hover:text-[#0A2856]/80">Slots</a>
                     <svg class="fill-current w-3 h-3 mx-3 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
                         <path d="M285.476 272.971L91.132 467.314c-9.373 9.373-24.569 9.373-33.941 0l-22.667-22.667c-9.357-9.357-9.375-24.522-.04-33.901L188.505 256 34.484 101.255c-9.335-9.379-9.317-24.544.04-33.901l22.667-22.667c9.373-9.373 24.569-9.373 33.941 0L285.475 239.03c9.373 9.372 9.373 24.568.001 33.941z"/>
                     </svg>
                 </li>
                 <li class="flex items-center">
-                    <span class="text-[#0A2856]">Rack History</span>
+                    <span class="text-[#0A2856]">All Slot History</span>
                 </li>
             </ol>
         </nav>
-        <h1 class="text-2xl font-bold text-gray-900">Rack History</h1>
-    </div>
-
-    <!-- Rack Info Card -->
-    <div class="bg-white p-4 rounded-lg shadow-sm border mb-8">
-        <h2 class="text-xl font-semibold text-gray-700 mb-2">Rack: {{ $rack->rack_name }}</h2>
-        <p class="text-gray-600">Total Slots: {{ $rack->total_slots }}</p>
+        <h1 class="text-2xl font-bold text-gray-900">All Slot History</h1>
     </div>
 
     <!-- History Table -->
     <div class="overflow-x-auto">
-        <table id="rackHistoryTable" class="min-w-full divide-y divide-gray-200">
+        <table id="slotHistoryAllTable" class="min-w-full divide-y divide-gray-200">
             <thead class="bg-[#0A2856]">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Date</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Action</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">User</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Slot</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Changes</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Reason</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Notes</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -47,15 +42,11 @@
                         {{ $history->created_at ? $history->created_at->format('d/m/Y H:i:s') : 'N/A' }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        @if($history->action == 'created')
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            Created
-                        </span>
-                        @elseif($history->action == 'updated')
+                        @if($history->action == 'update')
                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                             Updated
                         </span>
-                        @elseif($history->action == 'deleted')
+                        @elseif($history->action == 'delete')
                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
                             Deleted
                         </span>
@@ -66,30 +57,49 @@
                         @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {{ $history->user->name ?? 'N/A' }}
+                        {{ $history->changedBy->name ?? 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        @if($history->slot)
+                            <div>
+                                <div class="font-medium">{{ $history->slot->slot_name }}</div>
+                                <div class="text-gray-500">Capacity: {{ $history->slot->capacity }}</div>
+                                @if($history->slot->rack)
+                                    <div class="text-gray-500">Rack: {{ $history->slot->rack->rack_name }}</div>
+                                @endif
+                            </div>
+                        @else
+                            <span class="text-gray-400">Slot Deleted</span>
+                        @endif
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-900">
                         <div class="space-y-1">
-                            @if($history->old_rack_name !== $history->new_rack_name)
-                            <div>
-                                <span class="font-medium">Rack Name:</span>
-                                <span class="text-red-600">{{ $history->old_rack_name ?? 'N/A' }}</span>
-                                <span class="mx-2">→</span>
-                                <span class="text-green-600">{{ $history->new_rack_name ?? 'N/A' }}</span>
-                            </div>
-                            @endif
-                            @if($history->old_total_slots !== $history->new_total_slots)
-                            <div>
-                                <span class="font-medium">Total Slots:</span>
-                                <span class="text-red-600">{{ $history->old_total_slots ?? 'N/A' }}</span>
-                                <span class="mx-2">→</span>
-                                <span class="text-green-600">{{ $history->new_total_slots ?? 'N/A' }}</span>
-                            </div>
+                            @if($history->action == 'delete')
+                                <div>
+                                    <span class="font-medium">Slot Deleted:</span>
+                                    @php
+                                        $deletedData = json_decode($history->old_value, true);
+                                    @endphp
+                                    @if($deletedData)
+                                        <div class="mt-1 text-xs">
+                                            <div><span class="font-medium">Slot Name:</span> {{ $deletedData['slot_name'] ?? 'N/A' }}</div>
+                                            <div><span class="font-medium">Capacity:</span> {{ $deletedData['capacity'] ?? 'N/A' }}</div>
+                                            <div><span class="font-medium">Rack ID:</span> {{ $deletedData['rack_id'] ?? 'N/A' }}</div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @else
+                                <div>
+                                    <span class="font-medium">{{ ucfirst($history->field_changed) }}:</span>
+                                    <span class="text-red-600">{{ $history->old_value ?? 'N/A' }}</span>
+                                    <span class="mx-2">→</span>
+                                    <span class="text-green-600">{{ $history->new_value ?? 'N/A' }}</span>
+                                </div>
                             @endif
                         </div>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-900">
-                        {{ $history->reason ?? 'N/A' }}
+                        {{ $history->notes ?? 'N/A' }}
                     </td>
                 </tr>
                 @empty
@@ -99,11 +109,13 @@
                     <td class="px-6 py-4 text-center text-sm text-gray-500">No history records found</td>
                     <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                     <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                 </tr>
                 @endforelse
             </tbody>
             <tfoot>
                 <tr>
+                    <th></th>
                     <th></th>
                     <th></th>
                     <th></th>
@@ -121,7 +133,7 @@
 @section('scripts')
 <script>
     $(document).ready(function() {
-        $('#rackHistoryTable').DataTable({
+        $('#slotHistoryAllTable').DataTable({
             initComplete: function() {
                 this.api()
                     .columns()

@@ -119,7 +119,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td class="px-6 py-4 text-center text-sm text-gray-500">No items found in this slot</td>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                             <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                             <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                             <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>

@@ -415,9 +415,9 @@
                     SLOTS
                 </a>
 
-                <a href="{{ route('admin.items') }}"
+                <a href="{{ route('admin.item.index') }}"
                     class="flex items-center px-4 py-2 text-sm font-medium rounded-md
-                          {{ request()->routeIs('admin.items') ? 'bg-[#0A2856] text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+                            {{ request()->routeIs('admin.item.*') ? 'bg-[#0A2856] text-white' : 'text-gray-700 hover:bg-gray-50' }}">
                     <i class="fas fa-box mr-3"></i>
                     ITEMS
                 </a>
@@ -463,11 +463,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             
 
-            @if(session('error'))
-            <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                <span class="block sm:inline">{{ session('error') }}</span>
-            </div>
-            @endif
+            
 
             <!-- Page Content -->
             <div class="bg-white rounded-lg shadow">

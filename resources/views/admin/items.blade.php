@@ -28,8 +28,11 @@
 
     <!-- Action Bar -->
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-5">
-        <a href="{{ route('admin.items.add') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
+        <a href="{{ route('admin.item.create') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
             Add Item
+        </a>
+        <a href="{{ route('admin.item.history.all') }}" class="bg-[#0A2856] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0A2856]/90 transition-colors">
+            Change Log
         </a>
     </div>
 
@@ -47,7 +50,7 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                @forelse($items as $index => $item)
+                @forelse($itemsWithSlotInfo as $index => $item)
                 <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->erp_code }}</td>
@@ -56,13 +59,18 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->customer }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div class="flex space-x-2">
-                            <form action="{{ route('admin.item.destroy', $item->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this item?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                    Hapus
-                                </button>
-                            </form>
+                            @if(!$item->is_assigned)
+                                <form action="{{ route('admin.item.destroy', $item->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this item?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
+                                        Hapus
+                                    </button>
+                                </form>
+                            @endif
+                            <a href="{{ route('admin.item.history', $item->id) }}" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 min-w-[50px] inline-block text-center">
+                                History
+                            </a>
                             <a href="{{ route('admin.item.edit', $item->id) }}" class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px] inline-block text-center">
                                 Edit
                             </a>
@@ -71,7 +79,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td class="px-6 py-4 text-center text-sm text-gray-500">No items found</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                     <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                     <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
                     <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>

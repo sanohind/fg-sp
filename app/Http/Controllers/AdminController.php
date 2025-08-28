@@ -56,9 +56,17 @@ class AdminController extends Controller
     public function items()
     {
         $items = Item::all();
+        
+        // Calculate total items
         $totalItems = $items->count();
         
-        return view('admin.items', compact('items', 'totalItems'));
+        // Get items with slot assignment info
+        $itemsWithSlotInfo = $items->map(function($item) {
+            $item->is_assigned = Slot::where('item_id', $item->id)->exists();
+            return $item;
+        });
+        
+        return view('admin.items', compact('itemsWithSlotInfo', 'totalItems'));
     }
 
     public function addItem()
@@ -244,18 +252,48 @@ class AdminController extends Controller
         return view('admin.rack', compact('racks'));
     }
 
-    public function itemIndex()
-    {
-        $items = Item::with('slot')->get();
-        return view('admin.items', compact('items'));
-    }
+
 
     public function historyIndex()
     {
         $logs = LogStorePull::with(['user', 'slot'])
             ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->get();
             
-        return view('admin.history', compact('logs'));
+        // Calculate statistics
+        $storedCount = $logs->where('action', 'store')->count();
+        $pulledCount = $logs->where('action', 'pull')->count();
+        
+        return view('admin.history', compact('logs', 'storedCount', 'pulledCount'));
+    }
+
+    // Item History
+    public function itemHistory()
+    {
+        $histories = \App\Models\ItemHistory::with(['item', 'changedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('admin.item-history-all', compact('histories'));
+    }
+
+    // Rack History All
+    public function rackHistoryAll()
+    {
+        $histories = \App\Models\RackHistory::with(['rack', 'changedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('admin.rack-history-all', compact('histories'));
+    }
+
+    // Slot History
+    public function slotHistory()
+    {
+        $histories = \App\Models\SlotHistory::with(['slot', 'changedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('admin.slot-history-all', compact('histories'));
     }
 }
