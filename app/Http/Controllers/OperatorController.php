@@ -276,20 +276,22 @@ class OperatorController extends Controller
             ], 400);
         }
 
-        // Capacity check
-        if ($slot->current_qty >= $slot->capacity) {
+        // Capacity check - per scan adds one box to the slot
+        if (($slot->current_qty + 1) > $slot->capacity) {
             return response()->json([
                 'error' => 'Slot sudah penuh',
                 'current_qty' => $slot->current_qty,
-                'capacity' => $slot->capacity
+                'quantity_to_add' => 1,
+                'capacity' => $slot->capacity,
+                'will_exceed_by' => ($slot->current_qty + 1) - $slot->capacity
             ], 400);
         }
 
-        // Update slot quantity
+        // Update slot quantity - per scan increments by one box
         $newQty = $slot->current_qty + 1;
         $slot->update(['current_qty' => $newQty]);
 
-        // Create log entry dengan actual ERP code
+        // Create log entry dengan actual ERP code dan quantity
         $logData = [
             'erp_code' => $actualErpCode, // ✅ Gunakan kolom 1 untuk log
             'part_no' => $item->part_no,
@@ -300,7 +302,7 @@ class OperatorController extends Controller
             'action' => 'store',
             'user_id' => $user->id,
             'name' => $user->name ?? 'Unknown User',
-            'qty' => 1
+            'qty' => intval($quantity)
         ];
         
         LogStorePull::create($logData);

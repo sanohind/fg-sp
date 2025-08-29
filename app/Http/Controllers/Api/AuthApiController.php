@@ -102,7 +102,20 @@ class AuthApiController extends Controller
     public function me(Request $request): JsonResponse
     {
         try {
+            // Get user from Sanctum token directly
             $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Load role relationship if not already loaded
+            if (!$user->relationLoaded('role')) {
+                $user->load('role');
+            }
             
             return response()->json([
                 'success' => true,
@@ -112,8 +125,8 @@ class AuthApiController extends Controller
                         'username' => $user->username,
                         'name' => $user->name,
                         'role' => [
-                            'id' => $user->role->id,
-                            'name' => $user->role->role_name,
+                            'id' => $user->role ? $user->role->id : null,
+                            'name' => $user->role ? $user->role->role_name : null,
                         ],
                         'created_at' => $user->created_at->format('Y-m-d H:i:s'),
                         'last_login' => $user->last_login ?? null,
@@ -136,8 +149,21 @@ class AuthApiController extends Controller
         try {
             $user = $request->user();
             
-            // Revoke current token
-            $request->user()->currentAccessToken()->delete();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Get token from header and revoke it
+            $token = $request->bearerToken();
+            if ($token) {
+                $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+                if ($accessToken) {
+                    $accessToken->delete();
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -159,17 +185,30 @@ class AuthApiController extends Controller
         try {
             $user = $request->user();
             
-            // Revoke current token
-            $request->user()->currentAccessToken()->delete();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Get current token and revoke it
+            $token = $request->bearerToken();
+            if ($token) {
+                $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+                if ($accessToken) {
+                    $accessToken->delete();
+                }
+            }
 
             // Create new token
-            $token = $user->createToken('operator-mobile-app', ['operator'])->plainTextToken;
+            $newToken = $user->createToken('operator-mobile-app', ['operator'])->plainTextToken;
 
             return response()->json([
                 'success' => true,
                 'message' => 'Token refreshed successfully',
                 'data' => [
-                    'token' => $token,
+                    'token' => $newToken,
                     'token_type' => 'Bearer',
                     'expires_in' => null,
                 ]
@@ -203,6 +242,13 @@ class AuthApiController extends Controller
             }
 
             $user = $request->user();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
 
             // Check current password
             if (!Hash::check($request->current_password, $user->password)) {

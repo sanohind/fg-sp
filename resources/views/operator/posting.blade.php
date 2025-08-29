@@ -7,10 +7,8 @@
     <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-4 mt-14">
         <h1 class="text-2xl font-bold text-gray-800 mb-4">Posting F/G</h1>
 
-        <!-- Status Display -->
-        <div id="status-display" class="mb-4 p-4 rounded-md hidden">
-            <div id="status-content"></div>
-        </div>
+        <!-- Status Display (replaced by toast notifications) -->
+        <div id="status-display" class="hidden"><div id="status-content"></div></div>
 
         <!-- Slot Information Display -->
         <!-- <div id="slot-info" class="mb-4 p-4 bg-blue-50 rounded-md hidden">
@@ -92,27 +90,27 @@
 
         <!-- Bottom Part No field for box scanning -->
         <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Scan Box QR Code</label>
+            <label id="scan-label" class="block text-sm font-medium text-gray-700 mb-2">Scan Slot QR Code</label>
             <input type="text" id="box-scan-input" autofocus
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Scan: rack_name lalu ERP code">
+                placeholder="Scan slot_name (3-4 karakter), lalu ERP code">
             <p class="text-xs text-gray-500 mt-1">
                 1. Scan Slot (3-4 karakter); 2. Scan ERP Code (60-63 karakter, format: part_no;qty;lot_no;customer;po_line;seq;dn_no;seq_dn)
             </p>
         </div>
 
         <!-- Action Buttons -->
-        <div class="text-center space-x-4">
+        <div class="flex justify-center items-center gap-4">
             <button id="scan-slot-btn"
-                class="bg-blue-900 hover:bg-blue-800 text-white font-semibold py-3 px-8 rounded-md transition duration-200 ease-in-out transform hover:scale-105 shadow-lg">
-                <span class="inline-flex items-center">
+                class="sanoh-darkblue hover:opacity-90 text-white font-semibold py-3 px-8 rounded-md transition duration-200 ease-in-out shadow-lg inline-flex items-center justify-center">
+                <span class="inline-flex items-center justify-center">
                     <img src="{{ asset('barcode.png') }}" alt="Scan Slot" class="w-5 h-5 mr-2">
                     Scan 
                 </span>
             </button>
             <a id="back-menu-btn" href="{{ route('operator.index') }}"
-                class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-8 rounded-md transition duration-200 ease-in-out shadow hidden">
-                Main Menu
+                class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-8 rounded-md transition duration-200 ease-in-out shadow inline-flex items-center justify-center hidden">
+                <span class="inline-flex items-center justify-center">Main Menu</span>
             </a>
         </div>
     </div>
@@ -277,6 +275,30 @@ document.getElementById('box-scan-input').addEventListener('keypress', function(
     }
 });
 
+// Auto-trigger ERP scan when input length >= 58 and format valid
+document.getElementById('box-scan-input').addEventListener('input', function() {
+    const raw = this.value.trim();
+    const label = document.getElementById('scan-label');
+
+    // Phase 1: Auto scan slot when >= 3 characters
+    if (!scannedSlot) {
+        if (raw.length >= 3 && raw.length <= 4) {
+            // Auto trigger scan slot
+            scanSlotName(raw);
+            return;
+        }
+        return; // wait until min 3 chars
+    }
+
+    // Phase 2: After slot scanned, auto ERP when valid
+    if (raw.length < 58) return; // minimum length
+    if (!raw.includes(';')) return; // must contain semicolons
+    const semicolonCount = (raw.match(/;/g) || []).length;
+    if (semicolonCount !== 7) return; // 8 columns => 7 semicolons
+    // Trigger ERP scan
+    scanErp(raw);
+});
+
 const scanBoxBtn = document.getElementById('scan-box-btn');
 if (scanBoxBtn) {
     scanBoxBtn.addEventListener('click', function() {
@@ -328,29 +350,26 @@ function scanBox(partNo, erpCode, lotNo) {
 }
 
 function showStatus(message, type) {
-    const statusDisplay = document.getElementById('status-display');
-    const statusContent = document.getElementById('status-content');
-    
-    statusDisplay.className = `mb-4 p-4 rounded-md`;
-    statusContent.textContent = message;
-    
-    switch(type) {
-        case 'success':
-            statusDisplay.classList.add('bg-green-100', 'text-green-800');
-            break;
-        case 'error':
-            statusDisplay.classList.add('bg-red-100', 'text-red-800');
-            break;
-        case 'warning':
-            statusDisplay.classList.add('bg-yellow-100', 'text-yellow-800');
-            break;
+    try {
+        if (type === 'success' && typeof showSuccessToast === 'function') {
+            showSuccessToast('Success!', message);
+            return;
+        }
+        if (type === 'error' && typeof showErrorToast === 'function') {
+            showErrorToast('Error!', message);
+            return;
+        }
+        if (type === 'warning' && typeof showWarningToast === 'function') {
+            showWarningToast('Warning!', message);
+            return;
+        }
+        if (typeof showInfoToast === 'function') {
+            showInfoToast('Info', message);
+            return;
+        }
+    } catch (e) {
+        console.warn('Toast error:', e);
     }
-    
-    statusDisplay.classList.remove('hidden');
-    
-    setTimeout(() => {
-        statusDisplay.classList.add('hidden');
-    }, 5000);
 }
 
 function showSlotInfo(slot) {
@@ -426,6 +445,9 @@ function scanSlotName(slotName) {
         }
         showSlotInfo(data.slot);
         showStatus('Slot scanned: ' + scannedSlot + '. Now scan ERP code.', 'success');
+        // Update label to next phase
+        var label = document.getElementById('scan-label');
+        if (label) label.textContent = 'Scan Box QR Code';
         document.getElementById('box-scan-input').value = '';
         document.getElementById('box-scan-input').focus();
         const pkgUrl = resolvePackagingUrl(data);
