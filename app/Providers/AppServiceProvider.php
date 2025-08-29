@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\AuthMiddleware;
 
@@ -25,5 +26,6 @@ class AppServiceProvider extends ServiceProvider
         // Register middleware alias for role checks
         Route::aliasMiddleware('role', RoleMiddleware::class);
         Route::aliasMiddleware('auth', AuthMiddleware::class);
+        DB::statement("SET time_zone = '+07:00'");
     }
 }
