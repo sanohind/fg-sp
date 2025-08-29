@@ -139,6 +139,13 @@ let scannedSlot = null; // moved earlier so handlers can reference
 // Scan Slot functionality
 document.getElementById('scan-slot-btn').addEventListener('click', function() {
     const raw = document.getElementById('box-scan-input').value.trim();
+    
+    // Check if this is "Scan Again" button (slot is full)
+    if (this.innerHTML.includes('Scan Again')) {
+        resetPage();
+        return;
+    }
+    
     if (!raw) {
         showStatus('Scan/ketik slot_name atau ERP code pada field, lalu tekan Scan', 'warning');
         document.getElementById('box-scan-input').focus();
@@ -159,8 +166,8 @@ document.getElementById('scan-slot-btn').addEventListener('click', function() {
     
     // Slot already scanned -> treat input as ERP code
     // Validate ERP code length (60-63 characters)
-    if (raw.length < 60 || raw.length > 63) {
-        showStatus('ERP code harus memiliki panjang 60-63 karakter', 'error');
+    if (raw.length < 58 || raw.length > 63) {
+        showStatus('ERP code harus memiliki panjang 58-63 karakter', 'error');
         return;
     }
     
@@ -247,8 +254,8 @@ document.getElementById('box-scan-input').addEventListener('keypress', function(
 
         // Otherwise treat as ERP code
         // Validate ERP code length (60-63 characters)
-        if (raw.length < 60 || raw.length > 63) {
-            showStatus('ERP code harus memiliki panjang 60-63 karakter', 'error');
+        if (raw.length < 58 || raw.length > 63) {
+            showStatus('ERP code harus memiliki panjang 58-63 karakter', 'error');
             return;
         }
         
@@ -410,7 +417,7 @@ function scanSlotName(slotName) {
         if (data.current_qty >= data.capacity) {
             const scanBtn = document.getElementById('scan-slot-btn');
             if (scanBtn) {
-                scanBtn.innerText = 'Scan Again';
+                scanBtn.innerHTML = '<span class="inline-flex items-center"><img src="{{ asset("barcode.png") }}" alt="Scan Again" class="w-5 h-5 mr-2">Scan Again</span>';
             }
             const backBtn = document.getElementById('back-menu-btn');
             if (backBtn) {
@@ -494,7 +501,7 @@ function scanErp(erpCode) {
         if (data.current_qty >= data.capacity) {
             const scanBtn = document.getElementById('scan-slot-btn');
             if (scanBtn) {
-                scanBtn.innerText = 'Scan Again';
+                scanBtn.innerHTML = '<span class="inline-flex items-center"><img src="{{ asset("barcode.png") }}" alt="Scan Again" class="w-5 h-5 mr-2">Scan Again</span>';
             }
             const backBtn = document.getElementById('back-menu-btn');
             if (backBtn) {
@@ -614,5 +621,10 @@ function resolvePartUrl(data) {
     
     console.warn('No part image URL could be resolved');
     return null;
+}
+
+function resetPage() {
+    // Reload the page to reset state
+    location.reload();
 }
 </script>

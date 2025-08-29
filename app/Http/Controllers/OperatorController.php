@@ -138,7 +138,7 @@ class OperatorController extends Controller
             // Method 2: Try session-based user
             if (!$user && $request->session()->has('user')) {
                 $sessionUser = $request->session()->get('user');
-                if ($sessionUser && isset($sessionUser['id'])) {
+                if (isset($sessionUser['id'])) {
                     $user = (object) $sessionUser; // Convert to object for compatibility
                     $authMethod = 'session';
                 }
@@ -193,13 +193,13 @@ class OperatorController extends Controller
             }
 
             $request->validate([
-            'slot_name' => 'required|string|exists:slots,slot_name',
-            'erp_code' => 'required|string|min:60|max:63', // Ini adalah full scan string
-            'lot_no' => 'nullable|string'
-        ]);
-        
-        // Parse ERP code structure
-        $fullScanString = $request->erp_code; // Rename untuk clarity
+                'slot_name' => 'required|string|exists:slots,slot_name',
+                'erp_code' => 'required|string|min:58|max:63', // Ini adalah full scan string
+                'lot_no' => 'nullable|string'
+            ]);
+            
+            // Parse ERP code structure
+            $fullScanString = $request->erp_code; // Rename untuk clarity
         $erpParts = explode(';', $fullScanString);
         
         if (count($erpParts) !== 8) {
@@ -251,6 +251,28 @@ class OperatorController extends Controller
                 'error' => 'ERP code tidak sesuai dengan item pada slot ini',
                 'expected' => $item ? $item->erp_code : 'null',
                 'scanned' => $actualErpCode // Tampilkan hanya kolom 1
+            ], 400);
+        }
+
+        // ✅ NEW: Validate quantity from ERP code matches item quantity
+        if ($item->qty != $quantity) {
+            return response()->json([
+                'error' => 'Qty item tidak sama',
+                'expected_qty' => $item->qty,
+                'scanned_qty' => $quantity
+            ], 400);
+        }
+
+        // ✅ NEW: Check if lot number already exists in log_store_pull table
+        $existingLot = LogStorePull::where('lot_no', $lotNo)
+            ->where('slot_name', $slot->slot_name)
+            ->first();
+        
+        if ($existingLot) {
+            return response()->json([
+                'error' => 'Lot number sudah ada dalam slot ini',
+                'lot_no' => $lotNo,
+                'existing_action' => $existingLot->action
             ], 400);
         }
 

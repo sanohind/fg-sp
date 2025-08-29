@@ -189,7 +189,16 @@ class OperatorApiController extends Controller
                 ], 400);
             }
 
-            $lotNo = trim($erpParts[2]);
+            // Extract components
+            $actualErpCode = trim($erpParts[0]); // Column 1: ERP part number
+            $quantity = trim($erpParts[1]);      // Column 2: Quantity
+            $lotNo = trim($erpParts[2]);         // Column 3: Lot number
+            $customerName = trim($erpParts[3]);  // Column 4: Customer name
+            $poLine = trim($erpParts[4]);        // Column 5: PO line
+            $sequence = trim($erpParts[5]);      // Column 6: Sequence
+            $dnNo = trim($erpParts[6]);          // Column 7: DN number
+            $seqDn = trim($erpParts[7]);         // Column 8: Sequence DN
+
             if (empty($lotNo)) {
                 return response()->json([
                     'success' => false,
@@ -217,10 +226,38 @@ class OperatorApiController extends Controller
             }
 
             $item = $slot->item;
-            if ($item->erp_code !== $erpCode) {
+            
+            // ✅ NEW: Validate ERP code matches item ERP code
+            if ($item->erp_code !== $actualErpCode) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'ERP code tidak sesuai dengan item pada slot ini'
+                    'message' => 'ERP code tidak sesuai dengan item pada slot ini',
+                    'expected' => $item->erp_code,
+                    'scanned' => $actualErpCode
+                ], 400);
+            }
+
+            // ✅ NEW: Validate quantity from ERP code matches item quantity
+            if ($item->qty != $quantity) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Qty item tidak sama',
+                    'expected_qty' => $item->qty,
+                    'scanned_qty' => $quantity
+                ], 400);
+            }
+
+            // ✅ NEW: Check if lot number already exists in log_store_pull table
+            $existingLot = LogStorePull::where('lot_no', $lotNo)
+                ->where('slot_name', $slotName)
+                ->first();
+            
+            if ($existingLot) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lot number sudah ada dalam slot ini',
+                    'lot_no' => $lotNo,
+                    'existing_action' => $existingLot->action
                 ], 400);
             }
 
@@ -244,7 +281,7 @@ class OperatorApiController extends Controller
 
                 // Create log entry
                 $logData = [
-                    'erp_code' => $item->erp_code,
+                    'erp_code' => $actualErpCode,
                     'part_no' => $item->part_no,
                     'slot_id' => $slot->id,
                     'slot_name' => $slot->slot_name,
