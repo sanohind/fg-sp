@@ -3,61 +3,231 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use App\Models\Role;
 
 class AuthApiController extends Controller
 {
-    public function login(Request $request)
+    /**
+     * Login user and return token
+     */
+    public function login(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'username' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'string'],
-            'device_name' => ['nullable', 'string', 'max:255'],
-        ]);
-    
-        $user = User::where('username', $validated['username'])->first();
-        
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
+        try {
+            $validator = Validator::make($request->all(), [
+                'username' => 'required|string|max:50',
+                'password' => 'required|string|min:6',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $credentials = $request->only('username', 'password');
+
+            if (!Auth::attempt($credentials)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Username atau password salah'
+                ], 401);
+            }
+
+            $user = Auth::user();
+            
+            // Ensure role relationship is loaded
+            if (!$user->relationLoaded('role')) {
+                $user->load('role');
+            }
+            
+            // Check if user has operator role
+            if (!$user->role || !in_array(strtolower($user->role->role_name), ['operator', 'admin', 'superadmin'])) {
+                Auth::logout();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User tidak memiliki akses operator',
+                    'debug' => [
+                        'user_id' => $user->id,
+                        'role_id' => $user->role_id,
+                        'role_loaded' => $user->relationLoaded('role'),
+                        'role_name' => $user->role ? $user->role->role_name : 'No role found',
+                        'role_relationship_exists' => method_exists($user, 'role'),
+                    ]
+                ], 403);
+            }
+
+            // Revoke existing tokens
+            $user->tokens()->delete();
+
+            // Create new token
+            $token = $user->createToken('operator-mobile-app', ['operator'])->plainTextToken;
+
             return response()->json([
-                'message' => 'The provided credentials are incorrect.'
-            ], 401);
+                'success' => true,
+                'message' => 'Login berhasil',
+                'data' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'username' => $user->username,
+                        'name' => $user->name,
+                        'role' => [
+                            'id' => $user->role->id,
+                            'name' => $user->role->role_name,
+                        ],
+                    ],
+                    'token' => $token,
+                    'token_type' => 'Bearer',
+                    'expires_in' => null, // Sanctum tokens don't expire by default
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error during login: ' . $e->getMessage()
+            ], 500);
         }
-    
-        $token = $user->createToken($validated['device_name'] ?? 'api')->plainTextToken;
-        $role = DB::table('roles')->where('id', $user->role_id)->value('role_name');
-    
-        return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'username' => $user->username,
-                'name' => $user->name,
-                'role' => $role,
-            ],
-            'token' => $token,
-            'token_type' => 'Bearer'
-        ]);
     }
 
-    public function me(Request $request)
+    /**
+     * Get authenticated user information
+     */
+    public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $role = DB::table('roles')->where('id', $user->role_id)->value('role_name');
-        return response()->json([
-            'id' => $user->id,
-            'username' => $user->username,
-            'name' => $user->name,
-            'role' => $role,
-        ]);
+        try {
+            $user = $request->user();
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'username' => $user->username,
+                        'name' => $user->name,
+                        'role' => [
+                            'id' => $user->role->id,
+                            'name' => $user->role->role_name,
+                        ],
+                        'created_at' => $user->created_at->format('Y-m-d H:i:s'),
+                        'last_login' => $user->last_login ?? null,
+                    ],
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching user info: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    public function logout(Request $request)
+    /**
+     * Logout user and revoke token
+     */
+    public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Logged out']);
+        try {
+            $user = $request->user();
+            
+            // Revoke current token
+            $request->user()->currentAccessToken()->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Logout berhasil'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error during logout: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Refresh user token
+     */
+    public function refresh(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            
+            // Revoke current token
+            $request->user()->currentAccessToken()->delete();
+
+            // Create new token
+            $token = $user->createToken('operator-mobile-app', ['operator'])->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token refreshed successfully',
+                'data' => [
+                    'token' => $token,
+                    'token_type' => 'Bearer',
+                    'expires_in' => null,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error refreshing token: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Change password
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'current_password' => 'required|string|min:6',
+                'new_password' => 'required|string|min:6|confirmed',
+                'new_password_confirmation' => 'required|string|min:6',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = $request->user();
+
+            // Check current password
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Password saat ini salah'
+                ], 400);
+            }
+
+            // Update password
+            $user->password = $request->new_password;
+            $user->save();
+
+            // Revoke all tokens to force re-login
+            $user->tokens()->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password berhasil diubah. Silakan login ulang.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error changing password: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
-
-

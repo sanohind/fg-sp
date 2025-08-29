@@ -4,74 +4,78 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Facades\DB;
 
 class ApiRoleMiddleware
 {
-    public function handle(Request $request, Closure $next, ...$requiredRoles): Response
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
+    public function handle(Request $request, Closure $next, string $role): Response
     {
-        $requiredRoles = array_map('strtolower', $requiredRoles);
+        $user = $request->user();
 
-        // Get authenticated user from Sanctum
-        $authUser = $request->user();
-        
-        if (!$authUser) {
+        if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated. Please login first.',
-                'error_code' => 'UNAUTHENTICATED'
+                'message' => 'Unauthenticated'
             ], 401);
         }
 
-        // Resolve role name via relationship or direct attribute
-        $roleName = null;
-        
-        try {
-            if (method_exists($authUser, 'role') && $authUser->relationLoaded('role')) {
-                $roleName = strtolower((string) optional($authUser->role)->role_name);
-            } elseif (property_exists($authUser, 'role_name')) {
-                $roleName = strtolower((string) $authUser->role_name);
-            } else {
-                // Query database for role
-                $roleName = strtolower((string) DB::table('roles')
-                    ->where('id', $authUser->role_id)
-                    ->value('role_name'));
-            }
-
-            if (!$roleName) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User role not found.',
-                    'error_code' => 'ROLE_NOT_FOUND'
-                ], 403);
-            }
-
-            // Check if user has required role
-            if (in_array($roleName, $requiredRoles)) {
-                return $next($request);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Access denied. Insufficient permissions.',
-                'error_code' => 'INSUFFICIENT_PERMISSIONS',
-                'required_roles' => $requiredRoles,
-                'user_role' => $roleName
-            ], 403);
-
-        } catch (\Exception $e) {
-            \Log::error('ApiRoleMiddleware error', [
-                'user_id' => $authUser->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Internal server error while checking permissions.',
-                'error_code' => 'ROLE_CHECK_ERROR'
-            ], 500);
+        // Check if user has role relationship
+        if (!$user->relationLoaded('role')) {
+            $user->load('role');
         }
+
+        if (!$user->role) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak memiliki role',
+                'debug' => [
+                    'user_id' => $user->id,
+                    'role_id' => $user->role_id,
+                    'role_loaded' => $user->relationLoaded('role'),
+                ]
+            ], 403);
+        }
+
+        $userRole = strtolower($user->role->role_name);
+        $requiredRole = strtolower($role);
+
+        // Check role hierarchy
+        $allowedRoles = $this->getAllowedRoles($requiredRole);
+        
+        if (!in_array($userRole, $allowedRoles)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Required role: ' . $role,
+                'user_role' => $user->role->role_name,
+                'required_role' => $role,
+                'debug' => [
+                    'user_role_lower' => $userRole,
+                    'required_role_lower' => $requiredRole,
+                    'allowed_roles' => $allowedRoles,
+                ]
+            ], 403);
+        }
+
+        return $next($request);
+    }
+
+    /**
+     * Get allowed roles based on required role
+     */
+    private function getAllowedRoles(string $requiredRole): array
+    {
+        $roleHierarchy = [
+            'operator' => ['operator', 'admin', 'super admin'],
+            'admin' => ['admin', 'super admin'],
+            'super admin' => ['super admin'],
+        ];
+
+        return $roleHierarchy[$requiredRole] ?? [$requiredRole];
     }
 }

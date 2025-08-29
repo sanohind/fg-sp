@@ -3,86 +3,78 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Slot;
-use App\Models\Item;
-use App\Models\LogStorePull;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use App\Models\Item;
+use App\Models\Slot;
+use App\Models\Rack;
+use App\Models\LogStorePull;
+use App\Models\SlotHistory;
+use App\Models\ItemHistory;
+use App\Models\RackHistory;
+use Carbon\Carbon;
 
 class OperatorApiController extends Controller
 {
     /**
      * Get operator dashboard data
      */
-    public function dashboard()
+    public function dashboard(Request $request): JsonResponse
     {
         try {
-            $user = Auth::user();
+            $user = $request->user();
             
-            // Get assigned slots with items
-            $assignedSlots = Slot::with(['rack', 'item'])
-                ->whereNotNull('item_id')
-                ->get()
-                ->map(function ($slot) {
-                    return [
-                        'id' => $slot->id,
-                        'slot_name' => $slot->slot_name,
-                        'rack_name' => $slot->rack->rack_name,
-                        'current_qty' => $slot->current_qty,
-                        'capacity' => $slot->capacity,
-                        'part_no' => $slot->item->part_no,
-                        'erp_code' => $slot->item->erp_code,
-                        'is_full' => $slot->current_qty >= $slot->capacity,
-                        'is_empty' => $slot->current_qty <= 0
-                    ];
-                });
-
             // Get recent activities
-            $recentActivities = LogStorePull::with(['user', 'slot'])
+            $recentActivities = LogStorePull::with(['slot.item', 'slot.rack'])
                 ->where('user_id', $user->id)
                 ->orderBy('created_at', 'desc')
-                ->limit(20)
-                ->get()
-                ->map(function ($log) {
-                    return [
-                        'id' => $log->id,
-                        'action' => $log->action,
-                        'slot_name' => $log->slot_name,
-                        'rack_name' => $log->rack_name,
-                        'part_no' => $log->part_no,
-                        'lot_no' => $log->lot_no,
-                        'qty' => $log->qty,
-                        'created_at' => $log->created_at->format('Y-m-d H:i:s'),
-                        'user_name' => $log->name
-                    ];
-                });
+                ->limit(10)
+                ->get();
 
             // Get summary statistics
-            $totalSlots = Slot::count();
-            $filledSlots = Slot::whereNotNull('item_id')->count();
-            $emptySlots = $totalSlots - $filledSlots;
-            $totalItems = Slot::whereNotNull('item_id')->sum('current_qty');
+            $today = Carbon::today();
+            $stats = [
+                'today_store' => LogStorePull::where('user_id', $user->id)
+                    ->where('action', 'store')
+                    ->whereDate('created_at', $today)
+                    ->count(),
+                'today_pull' => LogStorePull::where('user_id', $user->id)
+                    ->where('action', 'pull')
+                    ->whereDate('created_at', $today)
+                    ->count(),
+                'total_slots' => Slot::count(),
+                'occupied_slots' => Slot::where('current_qty', '>', 0)->count(),
+                'empty_slots' => Slot::where('current_qty', 0)->count(),
+            ];
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'summary' => [
-                        'total_slots' => $totalSlots,
-                        'filled_slots' => $filledSlots,
-                        'empty_slots' => $emptySlots,
-                        'total_items' => $totalItems
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'username' => $user->username,
                     ],
-                    'assigned_slots' => $assignedSlots,
-                    'recent_activities' => $recentActivities
+                    'stats' => $stats,
+                    'recent_activities' => $recentActivities->map(function ($activity) {
+                        return [
+                            'id' => $activity->id,
+                            'action' => $activity->action,
+                            'quantity' => $activity->quantity,
+                            'slot_name' => $activity->slot->slot_name,
+                            'item_description' => $activity->slot->item->description,
+                            'rack_name' => $activity->slot->rack->rack_name,
+                            'created_at' => $activity->created_at->format('Y-m-d H:i:s'),
+                        ];
+                    }),
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Error fetching dashboard data: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -90,25 +82,26 @@ class OperatorApiController extends Controller
     /**
      * Scan slot for store operation
      */
-    public function scanSlotForStore(Request $request)
+    public function scanSlotForStore(Request $request): JsonResponse
     {
         try {
             $validator = Validator::make($request->all(), [
-                'slot_name' => 'required|string|min:3|max:4'
+                'slot_name' => 'required|string|max:50',
+                'erp_code' => 'required|string|max:100',
+                'quantity' => 'required|integer|min:1',
+                'lot_number' => 'nullable|string|max:100',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validasi gagal',
+                    'message' => 'Validation failed',
                     'errors' => $validator->errors()
-                ], 400);
+                ], 422);
             }
 
-            $slot = Slot::with(['rack', 'item'])
-                ->where('slot_name', $request->slot_name)
-                ->first();
-
+            $slot = Slot::with(['item', 'rack'])->where('slot_name', $request->slot_name)->first();
+            
             if (!$slot) {
                 return response()->json([
                     'success' => false,
@@ -116,211 +109,172 @@ class OperatorApiController extends Controller
                 ], 404);
             }
 
-            if (!$slot->item_id) {
+            // Check if slot has available space
+            if ($slot->getAvailableSpace() < $request->quantity) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Slot kosong, tidak ada item yang diatur',
+                    'message' => 'Slot tidak memiliki ruang yang cukup',
                     'data' => [
                         'slot_name' => $slot->slot_name,
-                        'rack_name' => $slot->rack->rack_name,
-                        'available' => true
+                        'available_space' => $slot->getAvailableSpace(),
+                        'requested_quantity' => $request->quantity,
+                        'current_quantity' => $slot->current_qty,
+                        'capacity' => $slot->capacity,
+                    ]
+                ], 400);
+            }
+
+            // Check if item matches
+            if ($slot->item && $slot->item->erp_code !== $request->erp_code) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ERP Code tidak sesuai dengan item di slot ini',
+                    'data' => [
+                        'slot_item_erp' => $slot->item->erp_code,
+                        'scanned_erp' => $request->erp_code,
                     ]
                 ], 400);
             }
 
             return response()->json([
                 'success' => true,
+                'message' => 'Slot valid untuk store',
                 'data' => [
                     'slot' => [
-                        'id' => $slot->id,
                         'slot_name' => $slot->slot_name,
                         'rack_name' => $slot->rack->rack_name,
-                        'current_qty' => $slot->current_qty,
-                        'capacity' => $slot->capacity
+                        'current_quantity' => $slot->current_qty,
+                        'available_space' => $slot->getAvailableSpace(),
+                        'capacity' => $slot->capacity,
                     ],
-                    'item' => [
-                        'id' => $slot->item->id,
-                        'part_no' => $slot->item->part_no,
+                    'item' => $slot->item ? [
                         'erp_code' => $slot->item->erp_code,
-                        'packaging_image_url' => $slot->item->packaging_image_url,
-                        'part_image_url' => $slot->item->part_image_url
-                    ],
-                    'is_full' => $slot->current_qty >= $slot->capacity
+                        'part_no' => $slot->item->part_no,
+                        'description' => $slot->item->description,
+                        'model' => $slot->item->model,
+                        'customer' => $slot->item->customer,
+                    ] : null,
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Error scanning slot: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Store item by ERP code
+     * Store items by ERP code
      */
-    public function storeByErp(Request $request)
+    public function storeByErp(Request $request): JsonResponse
     {
         try {
             $validator = Validator::make($request->all(), [
-                'slot_name' => 'required|string|min:3|max:4',
-                'erp_code' => 'required|string|min:60|max:63'
+                'slot_name' => 'required|string|max:50',
+                'erp_code' => 'required|string|max:100',
+                'quantity' => 'required|integer|min:1',
+                'lot_number' => 'nullable|string|max:100',
+                'notes' => 'nullable|string|max:500',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validasi gagal',
+                    'message' => 'Validation failed',
                     'errors' => $validator->errors()
-                ], 400);
+                ], 422);
             }
 
-            $user = Auth::user();
-            $slotName = $request->slot_name;
-            $erpCode = $request->erp_code;
+            DB::beginTransaction();
 
-            // Parse ERP code structure
-            $erpParts = explode(';', $erpCode);
-            if (count($erpParts) !== 8) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Format ERP code tidak valid. Harus memiliki 8 kolom yang dipisahkan dengan semicolon (;)'
-                ], 400);
-            }
-
-            // Extract components
-            $actualErpCode = trim($erpParts[0]); // Column 1: ERP part number
-            $quantity = trim($erpParts[1]);      // Column 2: Quantity
-            $lotNo = trim($erpParts[2]);         // Column 3: Lot number
-            $customerName = trim($erpParts[3]);  // Column 4: Customer name
-            $poLine = trim($erpParts[4]);        // Column 5: PO line
-            $sequence = trim($erpParts[5]);      // Column 6: Sequence
-            $dnNo = trim($erpParts[6]);          // Column 7: DN number
-            $seqDn = trim($erpParts[7]);         // Column 8: Sequence DN
-
-            if (empty($lotNo)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Lot number tidak boleh kosong dalam ERP code'
-                ], 400);
-            }
-
-            // Get slot and validate
-            $slot = Slot::with(['rack', 'item'])
-                ->where('slot_name', $slotName)
-                ->first();
-
+            $slot = Slot::with(['item', 'rack'])->where('slot_name', $request->slot_name)->first();
+            
             if (!$slot) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
                     'message' => 'Slot tidak ditemukan'
                 ], 404);
             }
 
-            if (!$slot->item_id) {
+            // Check if slot has available space
+            if ($slot->getAvailableSpace() < $request->quantity) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => 'Slot kosong, tidak ada item yang diatur'
+                    'message' => 'Slot tidak memiliki ruang yang cukup'
                 ], 400);
             }
 
-            $item = $slot->item;
-            
-            // ✅ NEW: Validate ERP code matches item ERP code
-            if ($item->erp_code !== $actualErpCode) {
+            // Check if item matches
+            if ($slot->item && $slot->item->erp_code !== $request->erp_code) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => 'ERP code tidak sesuai dengan item pada slot ini',
-                    'expected' => $item->erp_code,
-                    'scanned' => $actualErpCode
+                    'message' => 'ERP Code tidak sesuai dengan item di slot ini'
                 ], 400);
             }
 
-            // ✅ NEW: Validate quantity from ERP code matches item quantity
-            if ($item->qty != $quantity) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Qty item tidak sama',
-                    'expected_qty' => $item->qty,
-                    'scanned_qty' => $quantity
-                ], 400);
-            }
+            // Update slot quantity
+            $oldQuantity = $slot->current_qty;
+            $slot->current_qty += $request->quantity;
+            $slot->save();
 
-            // ✅ NEW: Check if lot number already exists in log_store_pull table
-            $existingLot = LogStorePull::where('lot_no', $lotNo)
-                ->where('slot_name', $slotName)
-                ->first();
-            
-            if ($existingLot) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Lot number sudah ada dalam slot ini',
-                    'lot_no' => $lotNo,
-                    'existing_action' => $existingLot->action
-                ], 400);
-            }
+            // Create log
+            $log = LogStorePull::create([
+                'user_id' => $request->user()->id,
+                'slot_id' => $slot->id,
+                'action' => 'store',
+                'quantity' => $request->quantity,
+                'lot_number' => $request->lot_number,
+                'notes' => $request->notes,
+                'timestamp' => now(),
+            ]);
 
-            // Check capacity
-            if ($slot->current_qty >= $slot->capacity) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Slot sudah penuh',
-                    'data' => [
-                        'current_qty' => $slot->current_qty,
-                        'capacity' => $slot->capacity
-                    ]
-                ], 400);
-            }
+            // Create slot history
+            SlotHistory::create([
+                'slot_id' => $slot->id,
+                'action' => 'store',
+                'old_quantity' => $oldQuantity,
+                'new_quantity' => $slot->current_qty,
+                'quantity_changed' => $request->quantity,
+                'user_id' => $request->user()->id,
+                'timestamp' => now(),
+            ]);
 
-            DB::beginTransaction();
-            try {
-                // Update slot quantity
-                $newQty = $slot->current_qty + 1;
-                $slot->update(['current_qty' => $newQty]);
-
-                // Create log entry
-                $logData = [
-                    'erp_code' => $actualErpCode,
-                    'part_no' => $item->part_no,
+            // Create item history if item exists
+            if ($slot->item) {
+                ItemHistory::create([
+                    'item_id' => $slot->item->id,
+                    'action' => 'store',
+                    'quantity' => $request->quantity,
                     'slot_id' => $slot->id,
+                    'user_id' => $request->user()->id,
+                    'timestamp' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Item berhasil disimpan',
+                'data' => [
+                    'log_id' => $log->id,
                     'slot_name' => $slot->slot_name,
                     'rack_name' => $slot->rack->rack_name,
-                    'lot_no' => $lotNo,
-                    'action' => 'store',
-                    'user_id' => $user->id,
-                    'name' => $user->name,
-                    'qty' => 1
-                ];
-
-                $logEntry = LogStorePull::create($logData);
-
-                DB::commit();
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Berhasil menambahkan 1 box',
-                    'data' => [
-                        'slot_name' => $slot->slot_name,
-                        'rack_name' => $slot->rack->rack_name,
-                        'part_no' => $item->part_no,
-                        'lot_no' => $lotNo,
-                        'current_qty' => $newQty,
-                        'capacity' => $slot->capacity,
-                        'is_full' => $newQty >= $slot->capacity,
-                        'log_id' => $logEntry->id
-                    ]
-                ]);
-
-            } catch (\Exception $e) {
-                DB::rollback();
-                throw $e;
-            }
-
+                    'quantity_stored' => $request->quantity,
+                    'new_total_quantity' => $slot->current_qty,
+                    'available_space' => $slot->getAvailableSpace(),
+                    'timestamp' => $log->timestamp->format('Y-m-d H:i:s'),
+                ]
+            ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Error storing item: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -328,25 +282,24 @@ class OperatorApiController extends Controller
     /**
      * Scan slot for pull operation
      */
-    public function scanSlotForPull(Request $request)
+    public function scanSlotForPull(Request $request): JsonResponse
     {
         try {
             $validator = Validator::make($request->all(), [
-                'slot_name' => 'required|string|min:3|max:4'
+                'slot_name' => 'required|string|max:50',
+                'quantity' => 'required|integer|min:1',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validasi gagal',
+                    'message' => 'Validation failed',
                     'errors' => $validator->errors()
-                ], 400);
+                ], 422);
             }
 
-            $slot = Slot::with(['rack', 'item'])
-                ->where('slot_name', $request->slot_name)
-                ->first();
-
+            $slot = Slot::with(['item', 'rack'])->where('slot_name', $request->slot_name)->first();
+            
             if (!$slot) {
                 return response()->json([
                     'success' => false,
@@ -354,164 +307,146 @@ class OperatorApiController extends Controller
                 ], 404);
             }
 
-            if (!$slot->item_id) {
+            // Check if slot has enough items
+            if ($slot->current_qty < $request->quantity) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Slot kosong',
+                    'message' => 'Slot tidak memiliki item yang cukup',
                     'data' => [
                         'slot_name' => $slot->slot_name,
-                        'rack_name' => $slot->rack->rack_name,
-                        'available' => false
+                        'available_quantity' => $slot->current_qty,
+                        'requested_quantity' => $request->quantity,
                     ]
                 ], 400);
             }
 
             return response()->json([
                 'success' => true,
+                'message' => 'Slot valid untuk pull',
                 'data' => [
                     'slot' => [
-                        'id' => $slot->id,
                         'slot_name' => $slot->slot_name,
                         'rack_name' => $slot->rack->rack_name,
-                        'current_qty' => $slot->current_qty,
-                        'capacity' => $slot->capacity
+                        'current_quantity' => $slot->current_qty,
+                        'available_quantity' => $slot->current_qty,
                     ],
-                    'item' => [
-                        'id' => $slot->item->id,
-                        'part_no' => $slot->item->part_no,
+                    'item' => $slot->item ? [
                         'erp_code' => $slot->item->erp_code,
-                        'packaging_image_url' => $slot->item->packaging_image_url,
-                        'part_image_url' => $slot->item->part_image_url
-                    ],
-                    'is_empty' => $slot->current_qty <= 0
+                        'part_no' => $slot->item->part_no,
+                        'description' => $slot->item->description,
+                        'model' => $slot->item->model,
+                        'customer' => $slot->item->customer,
+                    ] : null,
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Error scanning slot: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Pull item by lot number
+     * Pull items by lot number
      */
-    public function pullByLotNumber(Request $request)
+    public function pullByLotNumber(Request $request): JsonResponse
     {
         try {
             $validator = Validator::make($request->all(), [
-                'slot_name' => 'required|string|min:3|max:4',
-                'lot_no' => 'required|string'
+                'slot_name' => 'required|string|max:50',
+                'quantity' => 'required|integer|min:1',
+                'lot_number' => 'nullable|string|max:100',
+                'notes' => 'nullable|string|max:500',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validasi gagal',
+                    'message' => 'Validation failed',
                     'errors' => $validator->errors()
-                ], 400);
+                ], 422);
             }
 
-            $user = Auth::user();
-            $slotName = $request->slot_name;
-            $lotNo = $request->lot_no;
+            DB::beginTransaction();
 
-            // Get slot and validate
-            $slot = Slot::with(['rack', 'item'])
-                ->where('slot_name', $slotName)
-                ->first();
-
+            $slot = Slot::with(['item', 'rack'])->where('slot_name', $request->slot_name)->first();
+            
             if (!$slot) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
                     'message' => 'Slot tidak ditemukan'
                 ], 404);
             }
 
-            if (!$slot->item_id) {
+            // Check if slot has enough items
+            if ($slot->current_qty < $request->quantity) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => 'Slot kosong'
+                    'message' => 'Slot tidak memiliki item yang cukup'
                 ], 400);
             }
 
-            // Check if lot number exists in this slot
-            $lotExists = LogStorePull::where('slot_name', $slotName)
-                ->where('action', 'store')
-                ->whereNotIn('lot_no', function($query) use ($slotName, $lotNo) {
-                    $query->select('lot_no')
-                        ->from('log_store_pull')
-                        ->where('slot_name', $slotName)
-                        ->where('lot_no', $lotNo)
-                        ->where('action', 'pull');
-                })
-                ->exists();
+            // Update slot quantity
+            $oldQuantity = $slot->current_qty;
+            $slot->current_qty -= $request->quantity;
+            $slot->save();
 
-            if (!$lotExists) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Lot number tidak ditemukan atau sudah diambil dari slot ini'
-                ], 400);
-            }
+            // Create log
+            $log = LogStorePull::create([
+                'user_id' => $request->user()->id,
+                'slot_id' => $slot->id,
+                'action' => 'pull',
+                'quantity' => $request->quantity,
+                'lot_number' => $request->lot_number,
+                'notes' => $request->notes,
+                'timestamp' => now(),
+            ]);
 
-            // Check if slot has items
-            if ($slot->current_qty <= 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Slot sudah kosong'
-                ], 400);
-            }
+            // Create slot history
+            SlotHistory::create([
+                'slot_id' => $slot->id,
+                'action' => 'pull',
+                'old_quantity' => $oldQuantity,
+                'new_quantity' => $slot->current_qty,
+                'quantity_changed' => $request->quantity,
+                'user_id' => $request->user()->id,
+                'timestamp' => now(),
+            ]);
 
-            DB::beginTransaction();
-            try {
-                // Update slot quantity
-                $newQty = $slot->current_qty - 1;
-                $slot->update(['current_qty' => $newQty]);
-
-                // Create log entry
-                $logData = [
-                    'erp_code' => $slot->item->erp_code,
-                    'part_no' => $slot->item->part_no,
+            // Create item history if item exists
+            if ($slot->item) {
+                ItemHistory::create([
+                    'item_id' => $slot->item->id,
+                    'action' => 'pull',
+                    'quantity' => $request->quantity,
                     'slot_id' => $slot->id,
+                    'user_id' => $request->user()->id,
+                    'timestamp' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Item berhasil diambil',
+                'data' => [
+                    'log_id' => $log->id,
                     'slot_name' => $slot->slot_name,
                     'rack_name' => $slot->rack->rack_name,
-                    'lot_no' => $lotNo,
-                    'action' => 'pull',
-                    'user_id' => $user->id,
-                    'name' => $user->name,
-                    'qty' => 1
-                ];
-
-                $logEntry = LogStorePull::create($logData);
-
-                DB::commit();
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Berhasil mengambil 1 box dengan lot ' . $lotNo,
-                    'data' => [
-                        'slot_name' => $slot->slot_name,
-                        'rack_name' => $slot->rack->rack_name,
-                        'part_no' => $slot->item->part_no,
-                        'lot_no' => $lotNo,
-                        'current_qty' => $newQty,
-                        'capacity' => $slot->capacity,
-                        'is_empty' => $newQty <= 0,
-                        'log_id' => $logEntry->id
-                    ]
-                ]);
-
-            } catch (\Exception $e) {
-                DB::rollback();
-                throw $e;
-            }
-
+                    'quantity_pulled' => $request->quantity,
+                    'remaining_quantity' => $slot->current_qty,
+                    'timestamp' => $log->timestamp->format('Y-m-d H:i:s'),
+                ]
+            ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Error pulling item: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -519,13 +454,11 @@ class OperatorApiController extends Controller
     /**
      * Get slot information
      */
-    public function getSlotInfo($slotName)
+    public function getSlotInfo(Request $request, $slotName): JsonResponse
     {
         try {
-            $slot = Slot::with(['rack', 'item'])
-                ->where('slot_name', $slotName)
-                ->first();
-
+            $slot = Slot::with(['item', 'rack'])->where('slot_name', $slotName)->first();
+            
             if (!$slot) {
                 return response()->json([
                     'success' => false,
@@ -533,166 +466,187 @@ class OperatorApiController extends Controller
                 ], 404);
             }
 
-            // Get available lot numbers for this slot
-            $availableLots = LogStorePull::where('slot_name', $slotName)
-                ->where('action', 'store')
-                ->whereNotIn('lot_no', function($query) use ($slotName) {
-                    $query->select('lot_no')
-                        ->from('log_store_pull')
-                        ->where('slot_name', $slotName)
-                        ->where('action', 'pull');
-                })
-                ->pluck('lot_no')
-                ->unique()
-                ->values();
-
             return response()->json([
                 'success' => true,
                 'data' => [
                     'slot' => [
-                        'id' => $slot->id,
                         'slot_name' => $slot->slot_name,
                         'rack_name' => $slot->rack->rack_name,
-                        'current_qty' => $slot->current_qty,
-                        'capacity' => $slot->capacity
+                        'current_quantity' => $slot->current_qty,
+                        'capacity' => $slot->capacity,
+                        'available_space' => $slot->getAvailableSpace(),
+                        'occupancy_percentage' => $slot->getOccupancyPercentage(),
+                        'is_empty' => $slot->isEmpty(),
+                        'is_full' => $slot->isFull(),
                     ],
                     'item' => $slot->item ? [
-                        'id' => $slot->item->id,
-                        'part_no' => $slot->item->part_no,
                         'erp_code' => $slot->item->erp_code,
-                        'packaging_image_url' => $slot->item->packaging_image_url,
-                        'part_image_url' => $slot->item->part_image_url
+                        'part_no' => $slot->item->part_no,
+                        'description' => $slot->item->description,
+                        'model' => $slot->item->model,
+                        'customer' => $slot->item->customer,
+                        'part_image' => $slot->item->part_image_url,
+                        'packaging_image' => $slot->item->packaging_image_url,
                     ] : null,
-                    'available_lots' => $availableLots,
-                    'total_available_lots' => $availableLots->count(),
-                    'is_full' => $slot->item ? ($slot->current_qty >= $slot->capacity) : false,
-                    'is_empty' => !$slot->item || $slot->current_qty <= 0
+                    'rack' => [
+                        'rack_name' => $slot->rack->rack_name,
+                        'location' => $slot->rack->location,
+                    ],
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Error fetching slot info: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Search items by part number or ERP code
+     * Search items
      */
-    public function searchItems(Request $request)
+    public function searchItems(Request $request): JsonResponse
     {
         try {
             $validator = Validator::make($request->all(), [
-                'query' => 'required|string|min:1'
+                'query' => 'required|string|min:2',
+                'limit' => 'nullable|integer|min:1|max:50',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validasi gagal',
+                    'message' => 'Validation failed',
                     'errors' => $validator->errors()
-                ], 400);
+                ], 422);
             }
 
-            $query = $request->get('query');
-            
-            $items = Item::where('part_no', 'LIKE', "%{$query}%")
-                ->orWhere('erp_code', 'LIKE', "%{$query}%")
-                ->with(['slot' => function($q) {
-                    $q->with('rack');
-                }])
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'id' => $item->id,
-                        'part_no' => $item->part_no,
-                        'erp_code' => $item->erp_code,
-                        'packaging_image_url' => $item->packaging_image_url,
-                        'part_image_url' => $item->part_image_url,
-                        'slot' => $item->slot ? [
-                            'slot_name' => $item->slot->slot_name,
-                            'rack_name' => $item->slot->rack->rack_name,
-                            'current_qty' => $item->slot->current_qty,
-                            'capacity' => $item->slot->capacity
-                        ] : null
-                    ];
-                });
+            $query = $request->input('query');
+            $limit = $request->input('limit', 20);
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'items' => $items,
-                    'total' => $items->count()
-                ]
-            ]);
+            $items = Item::where('erp_code', 'LIKE', "%{$query}%")
+                ->orWhere('part_no', 'LIKE', "%{$query}%")
+                ->orWhere('description', 'LIKE', "%{$query}%")
+                ->orWhere('model', 'LIKE', "%{$query}%")
+                ->orWhere('customer', 'LIKE', "%{$query}%")
+                ->with(['slots.rack'])
+                ->limit($limit)
+                ->get();
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get operator activity history
-     */
-    public function getActivityHistory(Request $request)
-    {
-        try {
-            $user = Auth::user();
-            
-            $query = LogStorePull::with(['slot.rack'])
-                ->where('user_id', $user->id);
-
-            // Filter by date range if provided
-            if ($request->has('start_date')) {
-                $query->whereDate('created_at', '>=', $request->start_date);
-            }
-            
-            if ($request->has('end_date')) {
-                $query->whereDate('created_at', '<=', $request->end_date);
-            }
-
-            // Filter by action if provided
-            if ($request->has('action') && in_array($request->action, ['store', 'pull'])) {
-                $query->where('action', $request->action);
-            }
-
-            // Filter by slot if provided
-            if ($request->has('slot_name')) {
-                $query->where('slot_name', $request->slot_name);
-            }
-
-            $activities = $query->orderBy('created_at', 'desc')
-                ->paginate($request->get('per_page', 20));
-
-            $activities->getCollection()->transform(function ($log) {
+            $items = $items->map(function ($item) {
                 return [
-                    'id' => $log->id,
-                    'action' => $log->action,
-                    'slot_name' => $log->slot_name,
-                    'rack_name' => $log->rack_name,
-                    'part_no' => $log->part_no,
-                    'erp_code' => $log->erp_code,
-                    'lot_no' => $log->lot_no,
-                    'qty' => $log->qty,
-                    'created_at' => $log->created_at->format('Y-m-d H:i:s'),
-                    'user_name' => $log->name
+                    'id' => $item->id,
+                    'erp_code' => $item->erp_code,
+                    'part_no' => $item->part_no,
+                    'description' => $item->description,
+                    'model' => $item->model,
+                    'customer' => $item->customer,
+                    'total_quantity' => $item->qty,
+                    'stored_quantity' => $item->getTotalStoredQuantity(),
+                    'available_quantity' => $item->getAvailableQuantity(),
+                    'part_image' => $item->part_image_url,
+                    'packaging_image' => $item->packaging_image_url,
+                    'slots' => $item->slots->map(function ($slot) {
+                        return [
+                            'slot_name' => $slot->slot_name,
+                            'rack_name' => $slot->rack->rack_name,
+                            'current_quantity' => $slot->current_qty,
+                            'capacity' => $slot->capacity,
+                        ];
+                    }),
                 ];
             });
 
             return response()->json([
                 'success' => true,
-                'data' => $activities
+                'data' => [
+                    'items' => $items,
+                    'total_found' => $items->count(),
+                    'query' => $query,
+                ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Error searching items: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get activity history
+     */
+    public function getActivityHistory(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'action' => 'nullable|string|in:store,pull',
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date|after_or_equal:date_from',
+                'limit' => 'nullable|integer|min:1|max:100',
+                'page' => 'nullable|integer|min:1',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = $request->user();
+            $query = LogStorePull::with(['slot.item', 'slot.rack'])
+                ->where('user_id', $user->id);
+
+            // Filter by action
+            if ($request->has('action')) {
+                $query->where('action', $request->action);
+            }
+
+            // Filter by date range
+            if ($request->has('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+            if ($request->has('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            $limit = $request->input('limit', 20);
+            $activities = $query->orderBy('created_at', 'desc')
+                ->paginate($limit);
+
+            $activities->getCollection()->transform(function ($activity) {
+                return [
+                    'id' => $activity->id,
+                    'action' => $activity->action,
+                    'quantity' => $activity->quantity,
+                    'lot_number' => $activity->lot_number,
+                    'notes' => $activity->notes,
+                    'slot_name' => $activity->slot->slot_name,
+                    'rack_name' => $activity->slot->rack->rack_name,
+                    'item_description' => $activity->slot->item ? $activity->slot->item->description : null,
+                    'erp_code' => $activity->slot->item ? $activity->slot->item->erp_code : null,
+                    'timestamp' => $activity->created_at->format('Y-m-d H:i:s'),
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'activities' => $activities->items(),
+                    'pagination' => [
+                        'current_page' => $activities->currentPage(),
+                        'last_page' => $activities->lastPage(),
+                        'per_page' => $activities->perPage(),
+                        'total' => $activities->total(),
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching activity history: ' . $e->getMessage()
             ], 500);
         }
     }
