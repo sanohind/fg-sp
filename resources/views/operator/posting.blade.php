@@ -7,31 +7,8 @@
     <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-4 mt-14">
         <h1 class="text-2xl font-bold text-gray-800 mb-4">Posting F/G</h1>
 
-        <!-- Status Display (replaced by toast notifications) -->
+        <!-- Status Display -->
         <div id="status-display" class="hidden"><div id="status-content"></div></div>
-
-        <!-- Slot Information Display -->
-        <!-- <div id="slot-info" class="mb-4 p-4 bg-blue-50 rounded-md hidden">
-            <h3 class="font-semibold text-blue-800 mb-2">Slot Information</h3>
-            <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                    <span class="font-medium">Slot Name:</span>
-                    <span id="slot-name"></span>
-                </div>
-                <div>
-                    <span class="font-medium">Rack Name:</span>
-                    <span id="rack-name"></span>
-                </div>
-                <div>
-                    <span class="font-medium">Capacity:</span>
-                    <span id="slot-capacity"></span>
-                </div>
-                <div>
-                    <span class="font-medium">Status:</span>
-                    <span id="slot-status"></span>
-                </div>
-            </div>
-        </div> -->
 
         <!-- Top row with Part No, Rack, and Available fields -->
         <div class="grid grid-cols-4 gap-4 mb-4">
@@ -55,7 +32,7 @@
             </div>
         </div>
 
-        <!-- Image preview area (shows packaging image after slot scan, part image after ERP scan) -->
+        <!-- Image preview area -->
         <div id="image-preview"
             class="flex flex-col items-center justify-center min-h-64 bg-white rounded-md border-2 border-dashed border-gray-300 mb-4 r transition-colors">
             <div class="text-center">
@@ -155,6 +132,8 @@ document.getElementById('scan-slot-btn').addEventListener('click', function() {
         // Validate slot_name length (3-4 characters)
         if (raw.length < 3 || raw.length > 4) {
             showStatus('Slot name harus memiliki panjang 3-4 karakter', 'error');
+            document.getElementById('box-scan-input').value = ''; // Clear field on validation error
+            document.getElementById('box-scan-input').focus();
             return;
         }
         console.log('Button: calling scanSlotName with:', raw);
@@ -166,19 +145,25 @@ document.getElementById('scan-slot-btn').addEventListener('click', function() {
     // Validate ERP code length (60-63 characters)
     if (raw.length < 58 || raw.length > 63) {
         showStatus('ERP code harus memiliki panjang 58-63 karakter', 'error');
+        document.getElementById('box-scan-input').value = ''; // Clear field on validation error
+        document.getElementById('box-scan-input').focus();
         return;
     }
     
     // Validate ERP code format (must contain semicolons)
     if (!raw.includes(';')) {
-        showStatus('Format ERP code tidak valid. Harus mengandung semicolon (;)', 'error');
+                    showStatus('Format ERP code tidak valid. Harus mengandung semicolon (;)', 'error');
+            document.getElementById('box-scan-input').value = '';
+            document.getElementById('box-scan-input').focus();
         return;
     }
     
     // Count semicolons to ensure 8 columns
     const semicolonCount = (raw.match(/;/g) || []).length;
     if (semicolonCount !== 7) { // 7 semicolons = 8 columns
-        showStatus('Format ERP code tidak valid. Harus memiliki 8 kolom yang dipisahkan dengan semicolon (;)', 'error');
+                    showStatus('Format ERP code tidak valid. Harus memiliki 8 kolom yang dipisahkan dengan semicolon (;)', 'error');
+            document.getElementById('box-scan-input').value = '';
+            document.getElementById('box-scan-input').focus();
         return;
     }
     
@@ -187,7 +172,6 @@ document.getElementById('scan-slot-btn').addEventListener('click', function() {
 });
 
 document.getElementById('image-preview').addEventListener('click', function() {
-    // No prompt; focus input for scan
     document.getElementById('box-scan-input').focus();
 });
 
@@ -242,7 +226,9 @@ document.getElementById('box-scan-input').addEventListener('keypress', function(
         if (!scannedSlot) {
             // Validate slot_name length (3-4 characters)
             if (raw.length < 3 || raw.length > 4) {
-                showStatus('Slot name harus memiliki panjang 3-4 karakter', 'error');
+                            showStatus('Slot name harus memiliki panjang 3-4 karakter', 'error');
+            this.value = '';
+            this.focus();
                 return;
             }
             console.log('Calling scanSlotName with:', raw);
@@ -254,19 +240,25 @@ document.getElementById('box-scan-input').addEventListener('keypress', function(
         // Validate ERP code length (60-63 characters)
         if (raw.length < 58 || raw.length > 63) {
             showStatus('ERP code harus memiliki panjang 58-63 karakter', 'error');
+            this.value = '';
+            this.focus();
             return;
         }
         
         // Validate ERP code format (must contain semicolons)
         if (!raw.includes(';')) {
             showStatus('Format ERP code tidak valid. Harus mengandung semicolon (;)', 'error');
+            this.value = '';
+            this.focus();
             return;
         }
         
         // Count semicolons to ensure 8 columns
         const semicolonCount = (raw.match(/;/g) || []).length;
-        if (semicolonCount !== 7) { // 7 semicolons = 8 columns
+        if (semicolonCount !== 7) {
             showStatus('Format ERP code tidak valid. Harus memiliki 8 kolom yang dipisahkan dengan semicolon (;)', 'error');
+            this.value = '';
+            this.focus();
             return;
         }
         
@@ -283,19 +275,17 @@ document.getElementById('box-scan-input').addEventListener('input', function() {
     // Phase 1: Auto scan slot when >= 3 characters
     if (!scannedSlot) {
         if (raw.length >= 3 && raw.length <= 4) {
-            // Auto trigger scan slot
             scanSlotName(raw);
             return;
         }
-        return; // wait until min 3 chars
+        return;
     }
 
     // Phase 2: After slot scanned, auto ERP when valid
-    if (raw.length < 58) return; // minimum length
-    if (!raw.includes(';')) return; // must contain semicolons
+    if (raw.length < 58) return;
+    if (!raw.includes(';')) return;
     const semicolonCount = (raw.match(/;/g) || []).length;
-    if (semicolonCount !== 7) return; // 8 columns => 7 semicolons
-    // Trigger ERP scan
+    if (semicolonCount !== 7) return;
     scanErp(raw);
 });
 
@@ -385,8 +375,10 @@ function showSlotInfo(slot) {
     if (slotInfo) slotInfo.classList.remove('hidden');
 }
 
-// New: scan slot_name first
+// Scan slot_name first
 function scanSlotName(slotName) {
+    console.log('Scanning slot name:', slotName);
+    
     fetch('{{ route("operator.posting.scan-slotname") }}', {
         method: 'POST',
         headers: {
@@ -396,9 +388,15 @@ function scanSlotName(slotName) {
         body: JSON.stringify({ slot_name: slotName })
     })
     .then(response => {
+        console.log('Response status:', response.status, response.statusText);
+        
         return response.text().then(text => {
+            console.log('Raw response text:', text);
+            
             try {
                 const data = JSON.parse(text);
+                console.log('Parsed JSON data:', data);
+                
                 // Check if response was successful but contains error message
                 if (!response.ok && data.error) {
                     // This is a valid JSON response with an error message
@@ -409,7 +407,9 @@ function scanSlotName(slotName) {
                 }
                 return data;
             } catch (e) {
+                console.error('JSON parse error:', e);
                 console.error('Response text:', text);
+                
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -419,19 +419,40 @@ function scanSlotName(slotName) {
     })
     .then(data => {
         console.log('scanSlotName response:', data);
+        
         if (data.error) {
             showStatus(data.error, 'error');
             scannedSlot = null;
             console.log('Error occurred, scannedSlot reset to:', scannedSlot);
+            
+            // Clear input field and reset UI on error
+            document.getElementById('box-scan-input').value = '';
+            document.getElementById('box-scan-input').focus();
+            
+            // Reset display fields
+            document.getElementById('rack-display').value = '';
+            document.getElementById('part-no-display').value = '';
+            document.getElementById('available-display').value = '';
+            
+            // Reset label
+            var label = document.getElementById('scan-label');
+            if (label) label.textContent = 'Scan Slot QR Code';
+            
+            // Hide image preview
+            hideImagePreview();
+            
             return;
         }
+        
         scannedSlot = data.slot.slot_name;
         currentSlot = data.slot;
         console.log('scannedSlot set to:', scannedSlot);
+        
         // Prefill UI fields
         document.getElementById('rack-display').value = data.rack.rack_name;
         document.getElementById('part-no-display').value = data.item ? data.item.part_no : '';
         document.getElementById('available-display').value = data.current_qty + '/' + data.capacity;
+        
         // When full on first slot scan, change buttons: show Back to Menu and rename Scan to Scan Again
         if (data.current_qty >= data.capacity) {
             const scanBtn = document.getElementById('scan-slot-btn');
@@ -443,13 +464,16 @@ function scanSlotName(slotName) {
                 backBtn.classList.remove('hidden');
             }
         }
+        
         showSlotInfo(data.slot);
         showStatus('Slot scanned: ' + scannedSlot + '. Now scan ERP code.', 'success');
+        
         // Update label to next phase
         var label = document.getElementById('scan-label');
         if (label) label.textContent = 'Scan Box QR Code';
         document.getElementById('box-scan-input').value = '';
         document.getElementById('box-scan-input').focus();
+        
         const pkgUrl = resolvePackagingUrl(data);
         console.log('resolved packaging url:', pkgUrl);
         if (pkgUrl) {
@@ -459,10 +483,26 @@ function scanSlotName(slotName) {
     .catch(err => {
         console.error('Slot scan error:', err);
         showStatus('Error scanning slot: ' + err.message, 'error');
+        
+        // Clear input field and reset UI on error
+        document.getElementById('box-scan-input').value = '';
+        document.getElementById('box-scan-input').focus();
+        
+        // Reset display fields
+        document.getElementById('rack-display').value = '';
+        document.getElementById('part-no-display').value = '';
+        document.getElementById('available-display').value = '';
+        
+        // Reset label
+        var label = document.getElementById('scan-label');
+        if (label) label.textContent = 'Scan Slot QR Code';
+        
+        // Hide image preview
+        hideImagePreview();
     });
 }
 
-// New: after rack scanned, scan ERP code to increment
+// After rack scanned, scan ERP code to increment
 function scanErp(erpCode) {
     if (!scannedSlot) {
         showStatus('Scan slot terlebih dahulu', 'error');
@@ -502,6 +542,10 @@ function scanErp(erpCode) {
         console.log('storeByErp response:', data);
         if (data.error) {
             showStatus(data.error, 'error');
+            
+            // Clear input field on error but keep slot scanned
+            document.getElementById('box-scan-input').value = '';
+            document.getElementById('box-scan-input').focus();
             return;
         }
         
@@ -531,7 +575,7 @@ function scanErp(erpCode) {
             }
         }
 
-        // swap to part image if available (with fallback)
+        // Swap to part image if available
         const partUrl = resolvePartUrl(data);
         console.log('resolved part url:', partUrl);
         if (partUrl) {
@@ -540,7 +584,6 @@ function scanErp(erpCode) {
             console.warn('No part image URL resolved');
         }
         
-        // Log success for debugging
         console.log('ERP scan completed successfully:', {
             part_no: data.part_no,
             current_qty: data.current_qty,
@@ -551,6 +594,10 @@ function scanErp(erpCode) {
     .catch(err => {
         console.error('ERP scan error:', err);
         showStatus('Error storing by ERP: ' + err.message, 'error');
+        
+        // Clear input field on error but keep slot scanned
+        document.getElementById('box-scan-input').value = '';
+        document.getElementById('box-scan-input').focus();
     });
 }
 
@@ -594,6 +641,17 @@ function showImage(url, caption) {
     };
 }
 
+// helper: hide image preview and show placeholder
+function hideImagePreview() {
+    const img = document.getElementById('item-image');
+    const placeholder = document.getElementById('image-placeholder');
+    const cap = document.getElementById('image-caption');
+    
+    img.classList.add('hidden');
+    placeholder.classList.remove('hidden');
+    cap.classList.add('hidden');
+}
+
 // Build image URLs if backend didn't send absolute URLs
 function resolvePackagingUrl(data) {
     if (data.packaging_image_url) return data.packaging_image_url;
@@ -604,7 +662,7 @@ function resolvePackagingUrl(data) {
         if (val.startsWith('storage/') || val.startsWith('/storage/')) return '{{ asset('') }}' + val.replace(/^\//,'');
         // If contains nested folders already, just prefix with storage/
         if (val.includes('/')) return '{{ asset('storage') }}/' + val.replace(/^\//,'');
-        // filename only
+        // Filename only
         return '{{ asset('storage/packaging') }}/' + val;
     }
     return null;
@@ -646,7 +704,6 @@ function resolvePartUrl(data) {
 }
 
 function resetPage() {
-    // Reload the page to reset state
     location.reload();
 }
 </script>

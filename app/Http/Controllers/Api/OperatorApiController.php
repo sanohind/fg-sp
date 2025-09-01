@@ -87,7 +87,7 @@ class OperatorApiController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'slot_name' => 'required|string|min:3|max:4|exists:slots,slot_name'
+                'slot_name' => 'required|string|min:3|max:4'
             ]);
 
             if ($validator->fails()) {
@@ -107,6 +107,7 @@ class OperatorApiController extends Controller
                 ], 400);
             }
 
+            // Check if slot exists first
             $slot = Slot::with(['rack', 'item'])
                 ->where('slot_name', $request->slot_name)
                 ->first();
@@ -114,7 +115,7 @@ class OperatorApiController extends Controller
             if (!$slot) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Slot tidak ditemukan'
+                    'message' => 'Slot "' . $request->slot_name . '" tidak ditemukan dalam sistem'
                 ], 404);
             }
 
@@ -122,7 +123,7 @@ class OperatorApiController extends Controller
             if (!$slot->item_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak ada item yang diatur pada slot ini'
+                    'message' => 'Slot "' . $request->slot_name . '" tidak memiliki item yang diatur'
                 ], 400);
             }
 
@@ -140,6 +141,12 @@ class OperatorApiController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error in API scanSlotnameForPosting', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Error scanning slot: ' . $e->getMessage()

@@ -32,96 +32,115 @@ class OperatorController extends Controller
         return view('operator.index', compact('assignedSlots', 'recentActivities'));
     }
 
-    // Posting Process
     public function posting()
     {
         return view('operator.posting');
     }
 
-    // New: Scan slot by slot_name to determine target slot and item
+    // Scan slot by slot_name to determine target slot and item
     public function scanSlotnameForPosting(Request $request)
     {
-        // Check authentication first - try multiple methods
-        $user = null;
-        $authMethod = 'none';
-        
-        // Method 1: Try Auth facade
-        if (Auth::check()) {
-            $user = Auth::user();
-            $authMethod = 'Auth::user()';
-        }
-        
-        // Method 2: Try session-based user
-        if (!$user && $request->session()->has('user')) {
-            $sessionUser = $request->session()->get('user');
-            if ($sessionUser && isset($sessionUser['id'])) {
-                $user = (object) $sessionUser; // Convert to object for compatibility
-                $authMethod = 'session';
+        try {
+            // Check authentication first - try multiple methods
+            $user = null;
+            $authMethod = 'none';
+            
+            // Method 1: Try Auth facade
+            if (Auth::check()) {
+                $user = Auth::user();
+                $authMethod = 'Auth::user()';
             }
-        }
-        
-        // Method 3: Try request user (Sanctum)
-        if (!$user && $request->user()) {
-            $user = $request->user();
-            $authMethod = 'request->user()';
-        }
-        
-        if (!$user) {
-            \Log::error('All authentication methods failed in scanSlotnameForPosting', [
-                'auth_check' => Auth::check(),
-                'session_has_user' => $request->session()->has('user'),
-                'request_user' => $request->user() ? 'exists' : 'null'
+            
+            // Method 2: Try session-based user
+            if (!$user && $request->session()->has('user')) {
+                $sessionUser = $request->session()->get('user');
+                if ($sessionUser && isset($sessionUser['id'])) {
+                    $user = (object) $sessionUser; // Convert to object for compatibility
+                    $authMethod = 'session';
+                }
+            }
+            
+            // Method 3: Try request user (Sanctum)
+            if (!$user && $request->user()) {
+                $user = $request->user();
+                $authMethod = 'request->user()';
+            }
+            
+            if (!$user) {
+                \Log::error('All authentication methods failed in scanSlotnameForPosting', [
+                    'auth_check' => Auth::check(),
+                    'session_has_user' => $request->session()->has('user'),
+                    'request_user' => $request->user() ? 'exists' : 'null'
+                ]);
+                return response()->json([
+                    'error' => 'User tidak terautentikasi. Silakan login ulang.'
+                ], 401);
+            }
+            
+            \Log::info('Authentication successful in scanSlotnameForPosting', [
+                'method' => $authMethod,
+                'user_id' => $user->id ?? 'unknown',
+                'user_name' => $user->name ?? 'unknown'
             ]);
+            
+            // Validate request data
+            $request->validate([
+                'slot_name' => 'required|string|min:3|max:4'
+            ]);
+            
+            // Additional validation for slot_name length
+            $slotName = $request->slot_name;
+            if (strlen($slotName) < 3 || strlen($slotName) > 4) {
+                return response()->json([
+                    'error' => 'Slot name harus memiliki panjang 3-4 karakter'
+                ], 400);
+            }
+
+            // Check if slot exists first
+            $slot = Slot::with(['rack', 'item'])
+                ->where('slot_name', $request->slot_name)
+                ->first();
+
+            if (!$slot) {
+                return response()->json([
+                    'error' => 'Slot "' . $request->slot_name . '" tidak ditemukan dalam sistem'
+                ], 404);
+            }
+
+            // Check if slot has an item assigned
+            if (!$slot->item_id) {
+                return response()->json([
+                    'error' => 'Slot "' . $request->slot_name . '" tidak memiliki item yang diatur'
+                ], 400);
+            }
+
             return response()->json([
-                'error' => 'User tidak terautentikasi. Silakan login ulang.'
-            ], 401);
-        }
-        
-        \Log::info('Authentication successful in scanSlotnameForPosting', [
-            'method' => $authMethod,
-            'user_id' => $user->id ?? 'unknown',
-            'user_name' => $user->name ?? 'unknown'
-        ]);
-        
-        $request->validate([
-            'slot_name' => 'required|string|min:3|max:4|exists:slots,slot_name'
-        ]);
-        
-        // Additional validation for slot_name length
-        $slotName = $request->slot_name;
-        if (strlen($slotName) < 3 || strlen($slotName) > 4) {
+                'slot' => $slot,
+                'rack' => $slot->rack,
+                'item' => $slot->item,
+                'package_image' => $slot->item ? ($slot->item->packaging_image_url ?? null) : null,
+                'packaging_image_url' => $slot->item ? ($slot->item->packaging_image_url ?? null) : null,
+                'current_qty' => $slot->current_qty,
+                'capacity' => $slot->capacity,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'error' => 'Slot name harus memiliki panjang 3-4 karakter'
-            ], 400);
+                'error' => 'Data tidak valid: ' . implode(', ', $e->errors())
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error in scanSlotnameForPosting', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            
+            return response()->json([
+                'error' => 'Terjadi kesalahan sistem: ' . $e->getMessage()
+            ], 500);
         }
-
-        $slot = Slot::with(['rack', 'item'])
-            ->where('slot_name', $request->slot_name)
-            ->first();
-
-        if (!$slot) {
-            return response()->json(['error' => 'Slot tidak ditemukan'], 404);
-        }
-
-        // Check if slot has an item assigned
-        if (!$slot->item_id) {
-            return response()->json(['error' => 'Tidak ada item yang diatur pada slot ini'], 400);
-        }
-
-        return response()->json([
-            'slot' => $slot,
-            'rack' => $slot->rack,
-            'item' => $slot->item,
-            // return absolute URLs to images for easy rendering on frontend
-            'package_image' => $slot->item ? ($slot->item->packaging_image_url ?? null) : null,
-            'packaging_image_url' => $slot->item ? ($slot->item->packaging_image_url ?? null) : null,
-            // Use slot's current_qty for availability tracking
-            'current_qty' => $slot->current_qty,
-            'capacity' => $slot->capacity,
-        ]);
     }
 
-    // New: Store by ERP after slot scanned (increment count)
+    // Store by ERP after slot scanned (increment count)
     public function storeByErp(Request $request)
     {
         try {
@@ -194,12 +213,12 @@ class OperatorController extends Controller
 
             $request->validate([
                 'slot_name' => 'required|string|exists:slots,slot_name',
-                'erp_code' => 'required|string|min:58|max:63', // Ini adalah full scan string
+                'erp_code' => 'required|string|min:58|max:63',
                 'lot_no' => 'nullable|string'
             ]);
             
             // Parse ERP code structure
-            $fullScanString = $request->erp_code; // Rename untuk clarity
+            $fullScanString = $request->erp_code;
         $erpParts = explode(';', $fullScanString);
         
         if (count($erpParts) !== 8) {
@@ -209,7 +228,7 @@ class OperatorController extends Controller
         }
         
         // Extract components - KOLOM 1 adalah ERP CODE yang sebenarnya
-        $actualErpCode = trim($erpParts[0]); // ← INI YANG PENTING!
+        $actualErpCode = trim($erpParts[0]);
         $quantity = trim($erpParts[1]);
         $lotNo = trim($erpParts[2]);
         $customerName = trim($erpParts[3]);
@@ -226,7 +245,7 @@ class OperatorController extends Controller
         }
         
         \Log::info('ERP code parsed successfully', [
-            'actual_erp_code' => $actualErpCode, // Kolom 1
+            'actual_erp_code' => $actualErpCode,
             'quantity' => $quantity,
             'lot_no' => $lotNo,
             'full_scan_string' => $fullScanString
@@ -245,16 +264,16 @@ class OperatorController extends Controller
 
         $item = $slot->item;
 
-        // ✅ PERBAIKAN: Bandingkan dengan actual ERP code (kolom 1) bukan full string
+        // Bandingkan dengan actual ERP code (kolom 1) bukan full string
         if (!$item || $item->erp_code !== $actualErpCode) {
             return response()->json([
                 'error' => 'ERP code tidak sesuai dengan item pada slot ini',
                 'expected' => $item ? $item->erp_code : 'null',
-                'scanned' => $actualErpCode // Tampilkan hanya kolom 1
+                'scanned' => $actualErpCode
             ], 400);
         }
 
-        // ✅ NEW: Validate quantity from ERP code matches item quantity
+        // Validate quantity from ERP code matches item quantity
         if ($item->qty != $quantity) {
             return response()->json([
                 'error' => 'Qty item tidak sama',
@@ -263,7 +282,7 @@ class OperatorController extends Controller
             ], 400);
         }
 
-        // ✅ NEW: Check if lot number already exists in log_store_pull table
+        // Check if lot number already exists in log_store_pull table
         $existingLot = LogStorePull::where('lot_no', $lotNo)
             ->where('slot_name', $slot->slot_name)
             ->first();
@@ -293,12 +312,12 @@ class OperatorController extends Controller
 
         // Create log entry dengan actual ERP code dan quantity
         $logData = [
-            'erp_code' => $actualErpCode, // ✅ Gunakan kolom 1 untuk log
+            'erp_code' => $actualErpCode,
             'part_no' => $item->part_no,
             'slot_id' => $slot->id,
             'slot_name' => $slot->slot_name,
             'rack_name' => $slot->rack->rack_name,
-            'lot_no' => $lotNo, // ✅ Gunakan kolom 3 untuk lot_no
+            'lot_no' => $lotNo,
             'action' => 'store',
             'user_id' => $user->id,
             'name' => $user->name ?? 'Unknown User',
@@ -319,7 +338,7 @@ class OperatorController extends Controller
             'rack_name' => $slot->rack->rack_name,
             'part_no' => $item->part_no,
             'lot_no' => $lotNo,
-            'erp_code' => $actualErpCode, // Return actual ERP code
+            'erp_code' => $actualErpCode,
             'part_image_url' => $item->part_image_url ?? null,
             'packaging_image_url' => $item->packaging_image_url ?? null,
             'item' => $item
@@ -431,7 +450,7 @@ class OperatorController extends Controller
             'slot_id' => $slot->id,
             'slot_name' => $slot->slot_name,
             'rack_name' => $slot->rack->rack_name,
-            'lot_no' => $request->lot_no, // Lot number unik per box
+            'lot_no' => $request->lot_no,
             'action' => 'store',
             'user_id' => Auth::id(),
             'name' => Auth::user()->name,
@@ -540,7 +559,7 @@ class OperatorController extends Controller
             'slot_id' => $slot->id,
             'slot_name' => $slot->slot_name,
             'rack_name' => $slot->rack->rack_name,
-            'lot_no' => $request->lot_no, // Lot number unik per box
+            'lot_no' => $request->lot_no,
             'action' => 'pull',
             'user_id' => Auth::id(),
             'name' => Auth::user()->name,

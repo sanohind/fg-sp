@@ -14,43 +14,6 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// Test route untuk debugging
-Route::get('/test-session', function () {
-    dd(session()->all());
-});
-
-// Debug route untuk testing role dan user data
-Route::get('/debug-user', function () {
-    if (session('user')) {
-        echo "Session User: ";
-        dd(session('user'));
-    } elseif (auth()->check()) {
-        echo "Auth User: ";
-        $user = auth()->user();
-        dd([
-            'user' => $user->toArray(),
-            'role' => $user->role ? $user->role->toArray() : null,
-            'role_id' => $user->role_id
-        ]);
-    } else {
-        echo "No user found";
-        dd(session()->all());
-    }
-});
-
-// Debug route untuk testing rack dan slots data
-Route::get('/debug-rack', function () {
-    $racks = \App\Models\Rack::withCount([
-        'slots as slots_count',
-        'slots as assigned_slots_count' => function($query) {
-            $query->whereNotNull('item_id');
-        }
-    ])->get();
-    
-    echo "Rack Data: ";
-    dd($racks->toArray());
-});
-
 // Auth Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'authenticate'])->name('login.post');
