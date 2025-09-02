@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Item;
 use App\Models\ItemHistory;
+use App\Imports\ItemsImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
+
 
 class ItemController extends Controller
 {
@@ -42,8 +45,8 @@ class ItemController extends Controller
             'erp_code' => 'required|string|max:255|unique:items',
             'part_no' => 'required|string|max:255',
             'description' => 'required|string',
-            'model' => 'required|string|max:255',
-            'customer' => 'required|string|max:255',
+            'model' => 'nullable|string|max:255',
+            'customer' => 'nullable|string|max:255',
             'qty' => 'required|integer|min:0',
             'part_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'packaging_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -52,8 +55,8 @@ class ItemController extends Controller
             'erp_code.unique' => 'ERP Code sudah ada dalam sistem.',
             'part_no.required' => 'Part No harus diisi.',
             'description.required' => 'Description harus diisi.',
-            'model.required' => 'Model harus diisi.',
-            'customer.required' => 'Customer harus diisi.',
+            'model.max' => 'Model maksimal 255 karakter.',
+            'customer.max' => 'Customer maksimal 255 karakter.',
             'qty.required' => 'Quantity harus diisi.',
             'qty.integer' => 'Quantity harus berupa angka.',
             'qty.min' => 'Quantity minimal 0.',
@@ -111,8 +114,8 @@ class ItemController extends Controller
             'erp_code' => 'required|string|max:255|unique:items,erp_code,' . $id,
             'part_no' => 'required|string|max:255',
             'description' => 'required|string',
-            'model' => 'required|string|max:255',
-            'customer' => 'required|string|max:255',
+            'model' => 'nullable|string|max:255',
+            'customer' => 'nullable|string|max:255',
             'qty' => 'required|integer|min:0',
             'part_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'packaging_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -122,8 +125,8 @@ class ItemController extends Controller
             'erp_code.unique' => 'ERP Code sudah ada dalam sistem.',
             'part_no.required' => 'Part No harus diisi.',
             'description.required' => 'Description harus diisi.',
-            'model.required' => 'Model harus diisi.',
-            'customer.required' => 'Customer harus diisi.',
+            'model.max' => 'Model maksimal 255 karakter.',
+            'customer.max' => 'Customer maksimal 255 karakter.',
             'qty.required' => 'Quantity harus diisi.',
             'qty.integer' => 'Quantity harus berupa angka.',
             'qty.min' => 'Quantity minimal 0.',
@@ -254,4 +257,59 @@ class ItemController extends Controller
         
         return view('admin.item-history', compact('item', 'histories'));
     }
+
+
+
+    /**
+     * Handle Excel upload and import
+     */
+    public function uploadExcel(Request $request)
+    {
+        $request->validate([
+            'excel_file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
+        ], [
+            'excel_file.required' => 'File Excel harus dipilih',
+            'excel_file.file' => 'File yang diupload bukan file yang valid',
+            'excel_file.mimes' => 'File harus berformat Excel (.xlsx atau .xls)',
+            'excel_file.max' => 'Ukuran file maksimal 10MB',
+        ]);
+
+        try {
+            \Log::info('Starting Excel import', [
+                'filename' => $request->file('excel_file')->getClientOriginalName(),
+                'size' => $request->file('excel_file')->getSize(),
+                'mime_type' => $request->file('excel_file')->getMimeType()
+            ]);
+
+            // Import Excel file
+            $import = new ItemsImport();
+            Excel::import($import, $request->file('excel_file'));
+
+            // Get import statistics
+            $stats = $import->getStatistics();
+
+            \Log::info('Excel import completed', $stats);
+
+            if ($stats['success_count'] > 0) {
+                $message = "Berhasil mengimport {$stats['success_count']} item";
+                if ($stats['error_count'] > 0) {
+                    $message .= " dengan {$stats['error_count']} error";
+                }
+                return redirect()->route('admin.item.index')->with('success', $message);
+            } else {
+                return redirect()->route('admin.item.index')->with('error', 'Tidak ada data yang berhasil diimport. Periksa format Excel dan pastikan data dimulai dari baris 9.');
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Excel import failed', [
+                'error' => $e->getMessage(),
+                'file' => $request->file('excel_file')->getClientOriginalName(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->route('admin.item.index')->with('error', 'Gagal mengimport file Excel: ' . $e->getMessage());
+        }
+    }
+
+
 }

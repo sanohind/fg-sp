@@ -56,6 +56,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:superadmin,adm
     Route::get('/slots/{id}/history', [SlotController::class, 'history'])->name('slots.history');
     
     // Item Routes (ItemController - untuk CRUD operations)
+
+    Route::post('/item/upload-excel', [ItemController::class, 'uploadExcel'])->name('item.upload-excel');
+
     Route::resource('item', ItemController::class);
     Route::get('/item/{id}/history', [ItemController::class, 'history'])->name('item.history');
     

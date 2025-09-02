@@ -59,8 +59,8 @@
 
                     <!-- Model -->
                     <div>
-                        <label for="model" class="block text-sm font-medium text-gray-700 mb-2">Model *</label>
-                        <input type="text" name="model" id="model" value="{{ old('model', $item->model) }}" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm" required>
+                        <label for="model" class="block text-sm font-medium text-gray-700 mb-2">Model <span class="text-gray-500 text-xs">(Opsional)</span></label>
+                        <input type="text" name="model" id="model" value="{{ old('model', $item->model) }}" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm" placeholder="Enter model (optional)">
                         @error('model')
                             <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
@@ -68,8 +68,8 @@
 
                     <!-- Customer -->
                     <div>
-                        <label for="customer" class="block text-sm font-medium text-gray-700 mb-2">Customer *</label>
-                        <input type="text" name="customer" id="customer" value="{{ old('customer', $item->customer) }}" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px]" required>
+                        <label for="customer" class="block text-sm font-medium text-gray-700 mb-2">Customer <span class="text-gray-500 text-xs">(Opsional)</span></label>
+                        <input type="text" name="customer" id="customer" value="{{ old('customer', $item->customer) }}" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px]" placeholder="Enter customer name (optional)">
                         @error('customer')
                             <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror

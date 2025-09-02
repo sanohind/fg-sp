@@ -58,13 +58,13 @@
 
                 <!-- Model -->
                 <div>
-                    <label for="model" class="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                    <label for="model" class="block text-sm font-medium text-gray-700 mb-1">Model <span class="text-gray-500 text-xs">(Opsional)</span></label>
                     <input type="text" 
                            name="model" 
                            id="model" 
                            value="{{ old('model') }}"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm @error('model') border-red-500 @enderror" 
-                           placeholder="Enter model">
+                           placeholder="Enter model (optional)">
                     @error('model')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -106,13 +106,13 @@
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- Customer -->
     <div>
-        <label for="customer" class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+        <label for="customer" class="block text-sm font-medium text-gray-700 mb-1">Customer <span class="text-gray-500 text-xs">(Opsional)</span></label>
         <input type="text" 
                name="customer" 
                id="customer" 
                value="{{ old('customer') }}"
                class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A2856] focus:border-[#0A2856] transition-all duration-200 text-sm h-[38px] @error('customer') border-red-500 @enderror" 
-               placeholder="Enter customer name">
+               placeholder="Enter customer name (optional)">
         @error('customer')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
