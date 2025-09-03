@@ -58,7 +58,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:superadmin,adm
     // Item Routes (ItemController - untuk CRUD operations)
 
     Route::post('/item/upload-excel', [ItemController::class, 'uploadExcel'])->name('item.upload-excel');
-
+    Route::post('/debug-upload', [ItemController::class, 'debugUpload'])->name('debug.upload');
+    Route::get('/item/debug-upload', [ItemController::class, 'debugUpload'])->name('item.debug-upload');
     Route::resource('item', ItemController::class);
     Route::get('/item/{id}/history', [ItemController::class, 'history'])->name('item.history');
     

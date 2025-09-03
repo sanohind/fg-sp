@@ -476,7 +476,7 @@
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="{{ asset('js/toast.js') }}"></script>
+    {{-- HAPUS LINE INI: <script src="{{ asset('js/toast.js') }}"></script> --}}
     <script>
     // CSRF Token setup for AJAX
     $.ajaxSetup({
@@ -485,7 +485,8 @@
         }
     });
 
-    // Session messages for toast notifications
+    // HAPUS BAGIAN INI - SESSION MESSAGES (DUPLIKAT)
+    {{--
     @if(session('success'))
         var sessionSuccess = '{{ session('success') }}';
     @endif
@@ -506,6 +507,7 @@
     setTimeout(function() {
         $('.alert').fadeOut('slow');
     }, 5000);
+    --}}
 
     // Responsive Sidebar Logic
     $(document).ready(function() {
@@ -598,10 +600,91 @@
         });
     });
 
-    // Auto-hide alerts after 5 seconds
-    setTimeout(function() {
-        $('.alert').fadeOut('slow');
-    }, 5000);
+    // UNIFIED TOAST NOTIFICATION SYSTEM
+    function showToast(message, type = 'success') {
+        // Prevent duplicate toasts with same message
+        const existingToasts = $('.toast-notification');
+        let duplicateFound = false;
+        
+        existingToasts.each(function() {
+            const toastText = $(this).find('p').text();
+            if (toastText === message) {
+                duplicateFound = true;
+                return false; // Break the loop
+            }
+        });
+        
+        if (duplicateFound) {
+            return; // Don't show duplicate
+        }
+        
+        const toast = $(`
+            <div class="toast-notification fixed top-4 right-4 z-50 max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden transform transition-all duration-300 ease-out translate-x-full">
+                <div class="p-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            ${type === 'success' ? 
+                                '<svg class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
+                            type === 'error' ?
+                                '<svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
+                            type === 'warning' ?
+                                '<svg class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>' :
+                                '<svg class="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+                            }
+                        </div>
+                        <div class="ml-3 w-0 flex-1 pt-0.5">
+                            <p class="text-sm font-medium text-gray-900">${message}</p>
+                        </div>
+                        <div class="ml-4 flex-shrink-0 flex">
+                            <button class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">
+                                <span class="sr-only">Close</span>
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+        
+        $('body').append(toast);
+        
+        // Animate in
+        setTimeout(() => {
+            toast.removeClass('translate-x-full');
+        }, 100);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            toast.addClass('translate-x-full');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 5000);
+    }
+
+    // Make showToast globally available
+    window.showToast = showToast;
+
+    // Check for session messages - HANYA SATU KALI
+    $(document).ready(function() {
+        @if(session('success'))
+            showToast("{{ session('success') }}", 'success');
+        @endif
+        
+        @if(session('error'))
+            showToast("{{ session('error') }}", 'error');
+        @endif
+        
+        @if(session('warning'))
+            showToast("{{ session('warning') }}", 'warning');
+        @endif
+        
+        @if(session('info'))
+            showToast("{{ session('info') }}", 'info');
+        @endif
+    });
     </script>
 
     @yield('scripts')

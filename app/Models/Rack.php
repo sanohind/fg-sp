@@ -58,4 +58,18 @@ class Rack extends Model
     {
         return $this->slots()->sum('current_qty');
     }
+
+    // Check if rack has available slot capacity
+    public function hasAvailableSlotCapacity()
+    {
+        $currentSlotCount = $this->slots()->count();
+        return $currentSlotCount < $this->total_slots;
+    }
+
+    // Get remaining slot capacity
+    public function getRemainingSlotCapacity()
+    {
+        $currentSlotCount = $this->slots()->count();
+        return max(0, $this->total_slots - $currentSlotCount);
+    }
 }

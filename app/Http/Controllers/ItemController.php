@@ -198,9 +198,9 @@ class ItemController extends Controller
                 }
             }
 
-            return redirect()->route('admin.item.index')->with('success', 'Item berhasil diperbarui!');
+            return redirect()->route('admin.item.index')->with('success', 'Item updated successfully!');
         } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Gagal memperbarui item. Silakan coba lagi.');
+            return back()->withInput()->with('error', 'Failed to update item. Please try again.');
         }
     }
 
@@ -238,9 +238,9 @@ class ItemController extends Controller
 
             $item->delete();
 
-            return redirect()->route('admin.item.index')->with('success', 'Item berhasil dihapus!');
+            return redirect()->route('admin.item.index')->with('success', 'Item deleted successfully!');
         } catch (\Exception $e) {
-            return redirect()->route('admin.item.index')->with('error', 'Gagal menghapus item. Silakan coba lagi.');
+            return redirect()->route('admin.item.index')->with('error', 'Failed to delete item. Please try again.');
         }
     }
 
@@ -265,6 +265,27 @@ class ItemController extends Controller
      */
     public function uploadExcel(Request $request)
     {
+        \Log::info('Upload Excel method called', [
+            'request_method' => $request->method(),
+            'has_file' => $request->hasFile('excel_file'),
+            'all_data' => $request->all(),
+            'files' => $request->allFiles(),
+            'content_type' => $request->header('Content-Type'),
+            'content_length' => $request->header('Content-Length'),
+            'user_agent' => $request->header('User-Agent')
+        ]);
+
+        if (!$request->hasFile('excel_file')) {
+            \Log::error('No file uploaded', [
+                'files' => $request->allFiles(),
+                'all_data' => $request->all(),
+                'headers' => $request->headers->all()
+            ]);
+            // Clear any existing session messages to prevent duplication
+            session()->forget(['success', 'error', 'import_errors']);
+            return redirect()->route('admin.item.index')->with('error', 'No file uploaded. Please select an Excel file.');
+        }
+
         $request->validate([
             'excel_file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
         ], [
@@ -274,16 +295,20 @@ class ItemController extends Controller
             'excel_file.max' => 'Ukuran file maksimal 10MB',
         ]);
 
+        \Log::info('Validation passed, starting import process');
+
         try {
+            $file = $request->file('excel_file');
+            
             \Log::info('Starting Excel import', [
-                'filename' => $request->file('excel_file')->getClientOriginalName(),
-                'size' => $request->file('excel_file')->getSize(),
-                'mime_type' => $request->file('excel_file')->getMimeType()
+                'filename' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'mime_type' => $file->getMimeType()
             ]);
 
             // Import Excel file
             $import = new ItemsImport();
-            Excel::import($import, $request->file('excel_file'));
+            Excel::import($import, $file);
 
             // Get import statistics
             $stats = $import->getStatistics();
@@ -295,11 +320,41 @@ class ItemController extends Controller
                 if ($stats['error_count'] > 0) {
                     $message .= " dengan {$stats['error_count']} error";
                 }
+                \Log::info('Redirecting with success message', ['message' => $message]);
+                // Clear any existing session messages to prevent duplication
+                session()->forget(['success', 'error', 'import_errors']);
                 return redirect()->route('admin.item.index')->with('success', $message);
             } else {
-                return redirect()->route('admin.item.index')->with('error', 'Tidak ada data yang berhasil diimport. Periksa format Excel dan pastikan data dimulai dari baris 9.');
+                $errorMessage = 'No data was successfully imported. ';
+                if ($stats['error_count'] > 0) {
+                    $errorMessage .= 'Check the following error: ' . implode(', ', array_slice($stats['errors'], 0, 3));
+                    if (count($stats['errors']) > 3) {
+                        $errorMessage .= ' and ' . (count($stats['errors']) - 3) . ' other errors';
+                    }
+                } else {
+                    $errorMessage .= 'Check the Excel format and ensure data starts from row 9.';
+                }
+                \Log::info('Redirecting with error message', ['message' => $errorMessage]);
+                // Clear any existing session messages to prevent duplication
+                session()->forget(['success', 'error', 'import_errors']);
+                return redirect()->route('admin.item.index')->with('error', $errorMessage);
             }
 
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            \Log::error('Excel validation failed', [
+                'errors' => $e->failures(),
+                'file' => $request->file('excel_file')->getClientOriginalName()
+            ]);
+            
+            $errorMessage = 'Invalid Excel file: ';
+            foreach ($e->failures() as $failure) {
+                $errorMessage .= implode(', ', $failure->errors()) . ' ';
+            }
+            
+            // Clear any existing session messages to prevent duplication
+            session()->forget(['success', 'error', 'import_errors']);
+            return redirect()->route('admin.item.index')->with('error', trim($errorMessage));
+            
         } catch (\Exception $e) {
             \Log::error('Excel import failed', [
                 'error' => $e->getMessage(),
@@ -307,9 +362,89 @@ class ItemController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return redirect()->route('admin.item.index')->with('error', 'Gagal mengimport file Excel: ' . $e->getMessage());
+            // Clear any existing session messages to prevent duplication
+            session()->forget(['success', 'error', 'import_errors']);
+            return redirect()->route('admin.item.index')->with('error', 'Failed to import Excel file: ' . $e->getMessage());
         }
     }
+
+    /**
+ * Debug method untuk test upload
+ */
+public function debugUpload(Request $request)
+{
+    // Log semua informasi PHP dan server
+    \Log::info('=== DEBUG UPLOAD START ===');
+    
+    // PHP Configuration
+    $phpConfig = [
+        'file_uploads' => ini_get('file_uploads') ? 'ON' : 'OFF',
+        'upload_max_filesize' => ini_get('upload_max_filesize'),
+        'post_max_size' => ini_get('post_max_size'),
+        'max_file_uploads' => ini_get('max_file_uploads'),
+        'max_execution_time' => ini_get('max_execution_time'),
+        'memory_limit' => ini_get('memory_limit'),
+        'upload_tmp_dir' => ini_get('upload_tmp_dir') ?: 'default',
+    ];
+    
+    \Log::info('PHP Configuration:', $phpConfig);
+    
+    // Request information
+    $requestInfo = [
+        'method' => $request->method(),
+        'content_type' => $request->header('Content-Type'),
+        'content_length' => $request->header('Content-Length'),
+        'has_file_laravel' => $request->hasFile('excel_file'),
+        'all_data' => $request->all(),
+        'files_laravel' => $request->allFiles(),
+    ];
+    
+    \Log::info('Request Info:', $requestInfo);
+    
+    // $_FILES global
+    \Log::info('$_FILES Global:', $_FILES);
+    
+    // $_POST global
+    \Log::info('$_POST Global:', $_POST);
+    
+    // Server information
+    $serverInfo = [
+        'REQUEST_METHOD' => $_SERVER['REQUEST_METHOD'] ?? 'not_set',
+        'CONTENT_TYPE' => $_SERVER['CONTENT_TYPE'] ?? 'not_set',
+        'CONTENT_LENGTH' => $_SERVER['CONTENT_LENGTH'] ?? 'not_set',
+        'HTTP_CONTENT_LENGTH' => $_SERVER['HTTP_CONTENT_LENGTH'] ?? 'not_set',
+    ];
+    
+    \Log::info('Server Info:', $serverInfo);
+    
+    // Check tmp directory
+    $tmpDir = sys_get_temp_dir();
+    $tmpDirWritable = is_writable($tmpDir);
+    
+    \Log::info('Temp Directory:', [
+        'path' => $tmpDir,
+        'writable' => $tmpDirWritable,
+        'exists' => is_dir($tmpDir)
+    ]);
+    
+    \Log::info('=== DEBUG UPLOAD END ===');
+    
+    // Return debug response
+    return response()->json([
+        'success' => true,
+        'message' => 'Debug complete, check logs',
+        'php_config' => $phpConfig,
+        'request_info' => $requestInfo,
+        'files_global' => $_FILES,
+        'post_global' => $_POST,
+        'server_info' => $serverInfo,
+        'tmp_dir' => [
+            'path' => $tmpDir,
+            'writable' => $tmpDirWritable,
+            'exists' => is_dir($tmpDir)
+        ]
+    ]);
+}
 
 
 }

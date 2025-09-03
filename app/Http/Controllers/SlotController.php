@@ -30,7 +30,11 @@ class SlotController extends Controller
 
     public function create()
     {
-        $racks = Rack::all();
+        // Only show racks that have available slot capacity
+        $racks = Rack::all()->filter(function($rack) {
+            return $rack->hasAvailableSlotCapacity();
+        });
+        
         return view('admin.add-slot', compact('racks'));
     }
 
@@ -63,6 +67,16 @@ class SlotController extends Controller
                 return back()->withInput()->with('error', 'Rack tidak ditemukan.');
             }
 
+            // Check if rack has available slot capacity
+            if (!$rack->hasAvailableSlotCapacity()) {
+                \Log::error('Rack has no available slot capacity', [
+                    'rack_name' => $rack->rack_name,
+                    'current_slots' => $rack->slots()->count(),
+                    'total_slots' => $rack->total_slots
+                ]);
+                return back()->withInput()->with('error', 'Rack ' . $rack->rack_name . ' sudah penuh. Tidak bisa menambahkan slot lagi.');
+            }
+
             \Log::info('Rack found', ['rack' => $rack->toArray()]);
 
             $slot = Slot::create([
@@ -74,13 +88,13 @@ class SlotController extends Controller
 
             \Log::info('Slot created successfully', ['slot' => $slot->toArray()]);
 
-            return redirect()->route('admin.slot')->with('success', 'Slot berhasil ditambahkan!');
+            return redirect()->route('admin.slot')->with('success', 'Slot added successfully!');
         } catch (\Exception $e) {
             \Log::error('Slot creation failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return back()->withInput()->with('error', 'Gagal menambahkan slot. Silakan coba lagi.');
+            return back()->withInput()->with('error', 'Failed to add slot. Please try again.');
         }
     }
 
@@ -169,9 +183,9 @@ class SlotController extends Controller
                 ]);
             }
 
-            return redirect()->route('admin.slot')->with('success', 'Slot berhasil diperbarui!');
+            return redirect()->route('admin.slot')->with('success', 'Slot updated successfully!');
         } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Gagal memperbarui slot. Silakan coba lagi.');
+            return back()->withInput()->with('error', 'Failed to update slot. Please try again.');
         }
     }
 
@@ -199,9 +213,9 @@ class SlotController extends Controller
 
             $slot->delete();
 
-            return redirect()->route('admin.slot')->with('success', 'Slot berhasil dihapus!');
+            return redirect()->route('admin.slot')->with('success', 'Slot deleted successfully!');
         } catch (\Exception $e) {
-            return redirect()->route('admin.slot')->with('error', 'Gagal menghapus slot. Silakan coba lagi.');
+            return redirect()->route('admin.slot')->with('error', 'Failed to delete slot. Please try again.');
         }
     }
 
@@ -209,9 +223,8 @@ class SlotController extends Controller
     {
         $slot = Slot::findOrFail($id);
         
-        // Get items that are not assigned to any slot
-        $assignedItemIds = Slot::whereNotNull('item_id')->pluck('item_id')->toArray();
-        $items = Item::whereNotIn('id', $assignedItemIds)->get();
+        // Get all available items since 1 part can be assigned to multiple slots
+        $items = Item::all();
         
         return view('admin.assign-part', compact('slot', 'items'));
     }
@@ -227,11 +240,8 @@ class SlotController extends Controller
 
         $item = Item::findOrFail($request->item_id);
         
-        // Check if item is already assigned to another slot
-        $existingSlot = Slot::where('item_id', $request->item_id)->first();
-        if ($existingSlot) {
-            return back()->with('error', 'Item is already assigned to another slot');
-        }
+        // Remove validation that prevents items from being assigned to multiple slots
+        // Since 1 part can be assigned to multiple slots
 
         $oldItemId = $slot->item_id;
 
@@ -257,9 +267,9 @@ class SlotController extends Controller
     {
         $slot = Slot::findOrFail($id);
         
-        // Get items that are not assigned to any slot, plus the current item in this slot
-        $assignedItemIds = Slot::whereNotNull('item_id')->where('id', '!=', $slot->id)->pluck('item_id')->toArray();
-        $items = Item::whereNotIn('id', $assignedItemIds)->orWhere('id', $slot->item_id)->get();
+        // Get all available items except the currently assigned item to this slot
+        // Since 1 part can be assigned to multiple slots, but we don't want to show the current part
+        $items = Item::where('id', '!=', $slot->item_id)->get();
         
         return view('admin.change-part', compact('slot', 'items'));
     }
@@ -276,11 +286,8 @@ class SlotController extends Controller
         $oldItemId = $slot->item_id;
         $newItem = Item::findOrFail($request->item_id);
 
-        // If new item is already assigned to another slot
-        $existingSlot = Slot::where('item_id', $request->item_id)->where('id', '!=', $slot->id)->first();
-        if ($existingSlot) {
-            return back()->with('error', 'Item is already assigned to another slot');
-        }
+        // Remove validation that prevents items from being assigned to multiple slots
+        // Since 1 part can be assigned to multiple slots
 
         // Remove old item assignment - no need to update item table since it doesn't have slot_id
         // The relationship is managed through the slots table
