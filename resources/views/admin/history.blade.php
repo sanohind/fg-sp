@@ -39,6 +39,30 @@
         </div>
     </div>
 
+    <!-- Date Range Filter -->
+    <div class="bg-white rounded-lg shadow-sm border p-4 mb-6">
+        <div class="flex flex-wrap items-center gap-4">
+            <div class="flex items-center space-x-2">
+                <label for="dateFrom" class="text-sm font-medium text-gray-700">From:</label>
+                <input type="date" id="dateFrom" 
+                       class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]">
+            </div>
+            <div class="flex items-center space-x-2">
+                <label for="dateTo" class="text-sm font-medium text-gray-700">To:</label>
+                <input type="date" id="dateTo" 
+                       class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]">
+            </div>
+            <button id="applyDateFilter" 
+                    class="px-4 py-2 bg-[#0A2856] text-white rounded-md hover:bg-[#0A2856]/90 text-sm font-medium">
+                Apply Filter
+            </button>
+            <button id="clearDateFilter" 
+                    class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 text-sm font-medium">
+                Clear Filter
+            </button>
+        </div>
+    </div>
+
     <!-- Table -->
     <div class="overflow-x-auto">
         <table id="historyTable" class="min-w-full divide-y divide-gray-200">
@@ -51,6 +75,16 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actor</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Date</th>
+                </tr>
+                <!-- Search Row -->
+                <tr class="bg-gray-100">
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -76,7 +110,9 @@
                         @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $log->user->name ?? 'N/A' }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $log->created_at ? $log->created_at->format('d/m/Y H:i:s') : 'N/A' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-date="{{ $log->created_at ? $log->created_at->format('Y-m-d') : '' }}">
+                        {{ $log->created_at ? $log->created_at->format('d/m/Y H:i:s') : 'N/A' }}
+                    </td>
                 </tr>
                 @empty
                 <tr>
@@ -90,17 +126,6 @@
                 </tr>
                 @endforelse
             </tbody>
-            <tfoot>
-                <tr>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                </tr>
-            </tfoot>
         </table>
     </div>
 </div>
@@ -108,31 +133,47 @@
 
 @section('scripts')
 <script>
+
+let historyDataTable;
+let customDateFilter = null; // Track custom filter
+
 $(document).ready(function() {
-    $('#historyTable').DataTable({
+    // Initialize DataTable
+    historyDataTable = $('#historyTable').DataTable({
+        orderCellsTop: true,
+        fixedHeader: true,
         initComplete: function () {
             this.api()
                 .columns()
-                .every(function () {
+                .every(function (colIdx) {
                     let column = this;
                     let title = column.header().textContent;
- 
-                    // Create input element
-                    let input = document.createElement('input');
-                    input.placeholder = title;
-                    input.className = 'border border-gray-300 rounded-md px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]';
                     
-                    // Check if footer exists and has content
-                    if (column.footer() && column.footer().textContent !== undefined) {
-                        column.footer().replaceChildren(input);
+                    // Skip kolom No. (kolom 0)
+                    if (colIdx === 0) {
+                        return;
                     }
- 
-                    // Event listener for user input
-                    input.addEventListener('keyup', () => {
-                        if (column.search() !== input.value) {
-                            column.search(input.value).draw();
-                        }
-                    });
+                    
+                    let input = document.createElement('input');
+                    let placeholder = '';
+                    switch(colIdx) {
+                        case 1: placeholder = 'Part No'; break;
+                        case 2: placeholder = 'Lot No'; break;
+                        case 3: placeholder = 'Slot Name'; break;
+                        case 4: placeholder = 'Status'; break;
+                        case 5: placeholder = 'Actor'; break;
+                        case 6: placeholder = 'Date'; break;
+                        default: placeholder = title;
+                    }
+                    input.placeholder = placeholder;
+                    input.className = 'border border-gray-300 rounded-md px-2 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856] bg-white min-w-0';
+
+                    $(input).appendTo($(column.header()).parent().next().find('th').eq(colIdx))
+                        .on('keyup change clear', function () {
+                            if (column.search() !== this.value) {
+                                column.search(this.value).draw();
+                            }
+                        });
                 });
         },
         pageLength: 10,
@@ -150,6 +191,93 @@ $(document).ready(function() {
                 previous: "Previous"
             }
         }
+    });
+
+    // Date range filter functionality
+    $('#applyDateFilter').on('click', function() {
+        const dateFrom = $('#dateFrom').val();
+        const dateTo = $('#dateTo').val();
+        
+        if (!dateFrom && !dateTo) {
+            alert('Please select at least one date');
+            return;
+        }
+        
+        // Remove existing custom filter first
+        if (customDateFilter !== null) {
+            const index = $.fn.dataTable.ext.search.indexOf(customDateFilter);
+            if (index > -1) {
+                $.fn.dataTable.ext.search.splice(index, 1);
+            }
+        }
+        
+        // Create new custom filter
+        customDateFilter = function(settings, data, dataIndex) {
+            // Only apply to our specific table
+            if (settings.nTable.id !== 'historyTable') {
+                return true;
+            }
+            
+            // Get the row element to access data-date attribute
+            const row = settings.aoData[dataIndex].nTr;
+            const dateCell = row.querySelector('td[data-date]');
+            
+            if (!dateCell) {
+                return true; // Show rows without date data
+            }
+            
+            const rowDateStr = dateCell.getAttribute('data-date');
+            
+            if (!rowDateStr || rowDateStr === '') {
+                return true; // Show rows without dates
+            }
+            
+            // Use the data-date attribute which is already in Y-m-d format
+            // This avoids timezone issues from parsing displayed date
+            const rowDate = new Date(rowDateStr + 'T00:00:00');
+            
+            // Apply date range filter
+            if (dateFrom) {
+                const fromDate = new Date(dateFrom + 'T00:00:00');
+                if (rowDate < fromDate) {
+                    return false;
+                }
+            }
+            
+            if (dateTo) {
+                const toDate = new Date(dateTo + 'T23:59:59');
+                if (rowDate > toDate) {
+                    return false;
+                }
+            }
+            
+            return true;
+        };
+        
+        // Add the new filter
+        $.fn.dataTable.ext.search.push(customDateFilter);
+        
+        // Redraw table
+        historyDataTable.draw();
+    });
+
+    // Clear date filter
+    $('#clearDateFilter').on('click', function() {
+        // Clear input values
+        $('#dateFrom').val('');
+        $('#dateTo').val('');
+        
+        // Remove custom filter if it exists
+        if (customDateFilter !== null) {
+            const index = $.fn.dataTable.ext.search.indexOf(customDateFilter);
+            if (index > -1) {
+                $.fn.dataTable.ext.search.splice(index, 1);
+            }
+            customDateFilter = null;
+        }
+        
+        // Redraw table
+        historyDataTable.draw();
     });
 });
 </script>

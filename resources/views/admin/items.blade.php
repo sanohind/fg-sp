@@ -53,6 +53,15 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Customer</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Action</th>
                 </tr>
+                <!-- Search Row -->
+                <tr class="bg-gray-100">
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($itemsWithSlotInfo as $index => $item)
@@ -93,16 +102,6 @@
                 </tr>
                 @endforelse
             </tbody>
-            <tfoot>
-                <tr>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                </tr>
-            </tfoot>
         </table>
     </div>
 </div>
@@ -234,32 +233,40 @@
 
 @section('scripts')
 <script>
-// DataTable initialization
+// DataTable initialization with search fields below headers
 $(document).ready(function() {
     $('#itemsTable').DataTable({
+        orderCellsTop: true,
+        fixedHeader: true,
         initComplete: function () {
             this.api()
                 .columns()
-                .every(function () {
+                .every(function (colIdx) {
                     let column = this;
-                    let title = column.header().textContent;
- 
-                    // Create input element
-                    let input = document.createElement('input');
-                    input.placeholder = title;
-                    input.className = 'border border-gray-300 rounded-md px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]';
                     
-                    // Check if footer exists and has content
-                    if (column.footer() && column.footer().textContent !== undefined) {
-                        column.footer().replaceChildren(input);
+                    // Skip kolom No. (kolom 0)
+                    if (colIdx === 0 || colIdx === 5) {
+                        return;
                     }
- 
-                    // Event listener for user input
-                    input.addEventListener('keyup', () => {
-                        if (column.search() !== input.value) {
-                            column.search(input.value).draw();
-                        }
-                    });
+                    
+                    let input = document.createElement('input');
+                    let placeholder = '';
+                    switch(colIdx) {
+                        case 1: placeholder = 'ERP Code'; break;
+                        case 2: placeholder = 'Part No'; break;
+                        case 3: placeholder = 'Description'; break;
+                        case 4: placeholder = 'Customer'; break;
+                        default: placeholder = 'Search...';
+                    }
+                    input.placeholder = placeholder;
+                    input.className = 'border border-gray-300 rounded-md px-2 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856] bg-white min-w-0';
+
+                    $(input).appendTo($(column.header()).parent().next().find('th').eq(colIdx))
+                        .on('keyup change clear', function () {
+                            if (column.search() !== this.value) {
+                                column.search(this.value).draw();
+                            }
+                        });
                 });
         },
         pageLength: 10,

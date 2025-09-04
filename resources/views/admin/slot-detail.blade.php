@@ -55,7 +55,7 @@
                 </div>
 
                 <!-- Part No -->
-<div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Part No</label>
                     <input type="text" 
                            value="{{ $slot->item->part_no ?? 'N/A' }}"
@@ -91,6 +91,15 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Qty/box</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Date</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actor</th>
+                        </tr>
+                        <!-- Search Row -->
+                        <tr class="bg-gray-100">
+                            <th class="px-6 py-2"></th>
+                            <th class="px-6 py-2"></th>
+                            <th class="px-6 py-2"></th>
+                            <th class="px-6 py-2"></th>
+                            <th class="px-6 py-2"></th>
+                            <th class="px-6 py-2"></th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -128,16 +137,6 @@
                         </tr>
                         @endforelse
                     </tbody>
-                    <tfoot>
-                        <tr>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
         </div>
@@ -149,29 +148,34 @@
 <script>
 $(document).ready(function() {
     $('#itemsTable').DataTable({
+        orderCellsTop: true,
+        fixedHeader: true,
         initComplete: function () {
             this.api()
                 .columns()
-                .every(function () {
+                .every(function (colIdx) {
                     let column = this;
-                    let title = column.header().textContent;
- 
-                    // Create input element
-                    let input = document.createElement('input');
-                    input.placeholder = title;
-                    input.className = 'border border-gray-300 rounded-md px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]';
                     
-                    // Check if footer exists and has content
-                    if (column.footer() && column.footer().textContent !== undefined) {
-                        column.footer().replaceChildren(input);
+                    let input = document.createElement('input');
+                    let placeholder = '';
+                    switch(colIdx) {
+                        case 0: placeholder = 'No.'; break;
+                        case 1: placeholder = 'Lot No'; break;
+                        case 2: placeholder = 'Status'; break;
+                        case 3: placeholder = 'Qty/box'; break;
+                        case 4: placeholder = 'Date'; break;
+                        case 5: placeholder = 'Actor'; break;
+                        default: placeholder = 'Search...';
                     }
- 
-                    // Event listener for user input
-                    input.addEventListener('keyup', () => {
-                        if (column.search() !== input.value) {
-                            column.search(input.value).draw();
-                        }
-                    });
+                    input.placeholder = placeholder;
+                    input.className = 'border border-gray-300 rounded-md px-2 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856] bg-white min-w-0';
+
+                    $(input).appendTo($(column.header()).parent().next().find('th').eq(colIdx))
+                        .on('keyup change clear', function () {
+                            if (column.search() !== this.value) {
+                                column.search(this.value).draw();
+                            }
+                        });
                 });
         },
         pageLength: 10,

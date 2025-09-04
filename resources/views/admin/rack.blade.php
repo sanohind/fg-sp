@@ -62,102 +62,108 @@
         </a>
     </div>
 
-<!-- Table -->
-<div class="overflow-x-auto">
-    <table id="rackTable" class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-[#0A2856]">
-            <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">No.</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Rack</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Total Slots</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Available Slots</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Occupied Slots</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Action</th>
-            </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-            @forelse($racks as $index => $rack)
-            <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $rack->rack_name }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->total_slots }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->total_slots - $rack->assigned_slots_count }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->assigned_slots_count }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div class="flex space-x-2">
-                        <a href="{{ route('admin.rack.history', $rack->id) }}" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 min-w-[50px] text-center">
-                            History
-                        </a>
-                        <a href="{{ route('admin.rack.edit', $rack->id) }}" class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px] text-center">
-                            Edit
-                        </a>
-                        @if($rack->assigned_slots_count == 0)
-                            <form action="{{ route('admin.rack.destroy', $rack->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this rack?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
-                                    Delete
-                                </button>
-                            </form>
-                        @endif
-                    </div>
-                </td>
-            </tr>
-            @empty
-            <tr>
-                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
-                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
-                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
-                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
-                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
-                <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
-            </tr>
-            @endforelse
-        </tbody>
-        <tfoot>
-            <tr>
-                <th class="px-6 py-3"></th>
-                <th class="px-6 py-3"></th>
-                <th class="px-6 py-3"></th>
-                <th class="px-6 py-3"></th>
-                <th class="px-6 py-3"></th>
-                <th class="px-6 py-3"></th>
-            </tr>
-        </tfoot>
-    </table>
-</div>
+    <!-- Table -->
+    <div class="overflow-x-auto">
+        <table id="rackTable" class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-[#0A2856]">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">No.</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Rack</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Total Slots</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Available Slots</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Occupied Slots</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Action</th>
+                </tr>
+                <!-- Search Row -->
+                <tr class="bg-gray-100">
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                    <th class="px-6 py-2"></th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($racks as $index => $rack)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $index + 1 }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $rack->rack_name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->total_slots }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->total_slots - $rack->assigned_slots_count }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $rack->assigned_slots_count }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                            <a href="{{ route('admin.rack.history', $rack->id) }}" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 min-w-[50px] text-center">
+                                History
+                            </a>
+                            <a href="{{ route('admin.rack.edit', $rack->id) }}" class="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 min-w-[50px] text-center">
+                                Edit
+                            </a>
+                            @if($rack->assigned_slots_count == 0)
+                                <form action="{{ route('admin.rack.destroy', $rack->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this rack?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 min-w-[50px]">
+                                        Delete
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                    <td class="px-6 py-4 text-center text-sm text-gray-500">-</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 
- 
 @endsection
 
 @section('scripts')
 <script>
 $(document).ready(function() {
     $('#rackTable').DataTable({
+        orderCellsTop: true,
+        fixedHeader: true,
         initComplete: function () {
             this.api()
                 .columns()
-                .every(function () {
+                .every(function (colIdx) {
                     let column = this;
-                    let title = column.header().textContent;
- 
-                    // Create input element
-                    let input = document.createElement('input');
-                    input.placeholder = title;
-                    input.className = 'border border-gray-300 rounded-md px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856]';
                     
-                    // Check if footer exists and has content
-                    if (column.footer() && column.footer().textContent !== undefined) {
-                        column.footer().replaceChildren(input);
+                    // Skip kolom No. (kolom 0)
+                    if (colIdx === 0 || colIdx === 5) {
+                        return;
                     }
- 
-                    // Event listener for user input
-                    input.addEventListener('keyup', () => {
-                        if (column.search() !== input.value) {
-                            column.search(input.value).draw();
-                        }
-                    });
+                    
+                    let input = document.createElement('input');
+                    let placeholder = '';
+                    switch(colIdx) {
+                        case 1: placeholder = 'Rack'; break;
+                        case 2: placeholder = 'Total Slots'; break;
+                        case 3: placeholder = 'Available Slots'; break;
+                        case 4: placeholder = 'Occupied Slots'; break;
+                        default: placeholder = 'Search...';
+                    }
+                    input.placeholder = placeholder;
+                    input.className = 'border border-gray-300 rounded-md px-2 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-[#0A2856] focus:border-[#0A2856] bg-white min-w-0';
+
+                    $(input).appendTo($(column.header()).parent().next().find('th').eq(colIdx))
+                        .on('keyup change clear', function () {
+                            if (column.search() !== this.value) {
+                                column.search(this.value).draw();
+                            }
+                        });
                 });
         },
         pageLength: 10,
