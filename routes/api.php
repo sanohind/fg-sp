@@ -116,6 +116,7 @@ Route::middleware('api.auth')->group(function () {
         // ===== SEARCH AND UTILITIES =====
         Route::get('/operator/search/items', [OperatorApiController::class, 'searchItems']);
         Route::get('/operator/activities', [OperatorApiController::class, 'getActivityHistory']);
+        Route::get('/operator/scan-history', [OperatorApiController::class, 'getScanHistory']);
 
         // ===== LEGACY ROUTES (deprecated but kept for backward compatibility) =====
         // These can be removed if not used by existing clients

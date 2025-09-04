@@ -94,4 +94,7 @@ Route::prefix('operator')->name('operator.')->middleware(['auth', 'role:operator
     Route::get('/search-item', [OperatorController::class, 'searchItem'])->name('search-item');
     Route::get('/slot/{slotName}/info', [OperatorController::class, 'getSlotInfo'])->name('slot.info');
     Route::get('/slot/{slotName}/lot-numbers', [OperatorController::class, 'getSlotLotNumbers'])->name('slot.lot-numbers');
+
+    // Scan History Routes
+    Route::get('/scan-history', [OperatorController::class, 'scanHistory'])->name('scan-history');
 });

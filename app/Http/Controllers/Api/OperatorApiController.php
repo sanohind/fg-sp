@@ -749,4 +749,78 @@ class OperatorApiController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get scan history with slim fields for mobile
+     */
+    public function getScanHistory(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User tidak terautentikasi'
+                ], 401);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'action' => 'nullable|string|in:store,pull',
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date|after_or_equal:date_from',
+                'limit' => 'nullable|integer|min:1|max:100',
+                'page' => 'nullable|integer|min:1',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $query = LogStorePull::query()->where('user_id', $user->id);
+
+            if ($request->filled('action')) {
+                $query->where('action', $request->action);
+            }
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            $limit = $request->input('limit', 20);
+            $paginator = $query->orderBy('created_at', 'desc')->paginate($limit);
+
+            $items = collect($paginator->items())->map(function ($row) {
+                return [
+                    'erp_code' => $row->erp_code,
+                    'slot_name' => $row->slot_name,
+                    'status' => $row->action,
+                    'date' => $row->created_at->format('Y-m-d H:i:s'),
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'history' => $items,
+                    'pagination' => [
+                        'current_page' => $paginator->currentPage(),
+                        'last_page' => $paginator->lastPage(),
+                        'per_page' => $paginator->perPage(),
+                        'total' => $paginator->total(),
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching scan history: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

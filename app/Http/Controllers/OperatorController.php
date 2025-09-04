@@ -473,6 +473,48 @@ class OperatorController extends Controller
         return view('operator.pulling');
     }
 
+    // Scan history page for operator
+    public function scanHistory(Request $request)
+    {
+        // Resolve user id from multiple auth sources (session/web, Auth facade, Sanctum)
+        $userId = null;
+        if (Auth::check()) {
+            $userId = Auth::id();
+        }
+        if (!$userId && $request->session()->has('user')) {
+            $sessionUser = $request->session()->get('user');
+            if (isset($sessionUser['id'])) {
+                $userId = $sessionUser['id'];
+            }
+        }
+        if (!$userId && $request->user()) {
+            $userId = $request->user()->id;
+        }
+
+        if (!$userId) {
+            return redirect()->route('login')->with('error', 'User tidak terautentikasi. Silakan login ulang.');
+        }
+
+        $query = LogStorePull::query()
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc');
+
+        // Optional simple filters for web page
+        if ($request->filled('action')) {
+            $query->where('action', $request->get('action'));
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->get('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->get('date_to'));
+        }
+
+        $logs = $query->paginate(25);
+
+        return view('operator.scan-history', compact('logs'));
+    }
+
     // Scan slot QR code untuk pulling
     public function scanSlotForPulling(Request $request)
     {

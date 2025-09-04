@@ -29,6 +29,15 @@
                 </div>
             </a>
 
+            <!-- Card: Scan History -->
+            <a href="{{ route('operator.scan-history') }}"
+                class="block bg-white rounded-lg shadow border p-6 sm:px-8 sm:py-8 hover:shadow-md transition group">
+                <div class="flex flex-row items-center justify-between">
+                    <div class="text-lg sm:text-xl font-semibold text-[#0A2856]">Scan History</div>
+                    <img src="{{ asset('history-icon.png') }}" alt="Pulling"
+                        class="h-16 sm:h-20 w-auto select-none pointer-events-none">
+                </div>
+            </a>
         </div>
     </div>
 </div>
