@@ -71,8 +71,8 @@
     .content-with-fixed-layout {
         margin-top: 80px;
         /* Height of header */
-        margin-left: 256px;
-        /* Width of sidebar */
+        margin-left: 0;
+        /* No sidebar in operator layout */
         min-height: calc(100vh - 80px);
     }
 
@@ -293,6 +293,44 @@
         content: "";
         display: table;
         clear: both;
+    }
+
+    /* Search row styling */
+    .dataTables_wrapper .dataTable thead tr:nth-child(2) th {
+        background-color: #ffffff !important;
+        color: #374151 !important;
+        padding: 0.5rem 1.5rem;
+        border-bottom: 1px solid #d1d5db;
+    }
+
+    /* Search input styling in header */
+    .dataTables_wrapper .dataTable thead input {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        /* Ukuran font lebih kecil */
+        width: 100%;
+        min-width: 0;
+        /* Memungkinkan input menyusut lebih kecil */
+        outline: none;
+        background-color: white;
+        box-sizing: border-box;
+    }
+
+    .dataTables_wrapper .dataTable thead input:focus {
+        border-color: #0A2856;
+        box-shadow: 0 0 0 2px rgba(10, 40, 86, 0.1);
+    }
+
+    /* Ensure proper spacing and alignment */
+    .dataTables_wrapper .dataTable thead th {
+        vertical-align: middle;
+    }
+
+    /* Remove the old tfoot styling since we're not using it anymore */
+    .dataTables_wrapper tfoot {
+        display: none;
     }
     </style>
 </head>
